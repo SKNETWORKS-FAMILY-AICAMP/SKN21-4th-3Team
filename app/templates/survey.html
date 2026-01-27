@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>심리 상태 검사 - 심리 상담 AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header class="page-header">
+            <a href="{{ url_for('index') }}" class="header-logo">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">심리 상담 AI</span>
+            </a>
+            <nav class="header-nav">
+                <a href="{{ url_for('index') }}">채팅</a>
+                <a href="{{ url_for('survey') }}" class="active">심리 검사</a>
+                <a href="{{ url_for('mypage') }}">마이페이지</a>
+            </nav>
+            <div class="header-actions">
+                <button class="btn-icon" id="theme-toggle" title="테마 변경">🌙</button>
+                <button class="btn-icon" id="color-toggle" title="색상 변경">🏆</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="page-content">
+            <div class="survey-container">
+                <!-- Survey Intro -->
+                <section class="survey-intro" id="survey-intro">
+                    <div class="intro-card">
+                        <div class="intro-icon">📋</div>
+                        <h1>심리 상태 자가 진단</h1>
+                        <p>상담 전, 현재 심리 상태를 간단히 확인해 보세요.<br>
+                            더 정확하고 맞춤화된 상담을 받으실 수 있습니다.</p>
+                        <div class="intro-info">
+                            <div class="info-item">
+                                <span class="info-icon">⏱️</span>
+                                <span>약 3-5분 소요</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-icon">🔒</span>
+                                <span>응답 내용은 안전하게 보호됩니다</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="startSurvey()">검사 시작하기</button>
+                    </div>
+                </section>
+
+                <!-- Survey Questions -->
+                <section class="survey-questions" id="survey-questions" style="display: none;">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <span class="progress-text" id="progress-text">1 / 10</span>
+                    </div>
+
+                    <div class="question-card" id="question-card">
+                        <div class="question-number" id="question-number">Q1</div>
+                        <h2 class="question-text" id="question-text">지난 2주 동안, 일상적인 활동에 대한 흥미나 즐거움이 줄어들었다고 느끼셨나요?</h2>
+
+                        <div class="answer-options" id="answer-options">
+                            <button class="answer-btn" data-value="0" onclick="selectAnswer(this)">
+                                <span class="answer-emoji">😊</span>
+                                <span class="answer-text">전혀 그렇지 않다</span>
+                            </button>
+                            <button class="answer-btn" data-value="1" onclick="selectAnswer(this)">
+                                <span class="answer-emoji">🙂</span>
+                                <span class="answer-text">약간 그렇다</span>
+                            </button>
+                            <button class="answer-btn" data-value="2" onclick="selectAnswer(this)">
+                                <span class="answer-emoji">😐</span>
+                                <span class="answer-text">자주 그렇다</span>
+                            </button>
+                            <button class="answer-btn" data-value="3" onclick="selectAnswer(this)">
+                                <span class="answer-emoji">😔</span>
+                                <span class="answer-text">거의 매일 그렇다</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="survey-nav">
+                        <button class="btn-secondary" id="prev-btn" onclick="prevQuestion()" disabled>이전</button>
+                        <button class="btn-primary" id="next-btn" onclick="nextQuestion()" disabled>다음</button>
+                    </div>
+                </section>
+
+                <!-- Survey Result -->
+                <section class="survey-result" id="survey-result" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon" id="result-icon">💚</div>
+                            <h1 id="result-title">검사 결과</h1>
+                        </div>
+
+                        <div class="result-score">
+                            <div class="score-circle" id="score-circle">
+                                <span class="score-value" id="score-value">72</span>
+                                <span class="score-label">점</span>
+                            </div>
+                            <p class="score-desc" id="score-desc">양호한 상태입니다</p>
+                        </div>
+
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <span class="detail-label">스트레스 수준</span>
+                                <div class="detail-bar">
+                                    <div class="detail-fill" style="width: 35%"></div>
+                                </div>
+                                <span class="detail-value">낮음</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">우울감</span>
+                                <div class="detail-bar">
+                                    <div class="detail-fill" style="width: 25%"></div>
+                                </div>
+                                <span class="detail-value">낮음</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">불안감</span>
+                                <div class="detail-bar">
+                                    <div class="detail-fill" style="width: 40%"></div>
+                                </div>
+                                <span class="detail-value">보통</span>
+                            </div>
+                        </div>
+
+                        <div class="result-message">
+                            <h3>💡 AI 상담사의 조언</h3>
+                            <p id="result-advice">현재 전반적으로 양호한 심리 상태를 유지하고 계십니다.
+                                지속적인 자기 관리를 통해 건강한 정신 상태를 유지하시길 권장드립니다.
+                                가벼운 스트레스 관리 기법을 배워보시는 것도 좋습니다.</p>
+                        </div>
+
+                        <div class="result-actions">
+                            <button class="btn-primary" onclick="location.href='{{ url_for('index') }}'">상담
+                                시작하기</button>
+                            <button class="btn-secondary" onclick="restartSurvey()">다시 검사하기</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/pages.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/survey.js') }}"></script>
+</body>
+
+</html>

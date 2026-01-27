@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - 심리 상담 AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header class="page-header">
+            <a href="{{ url_for('index') }}" class="header-logo">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">심리 상담 AI</span>
+            </a>
+            <nav class="header-nav">
+                <a href="{{ url_for('index') }}">채팅</a>
+                <a href="{{ url_for('survey') }}">심리 검사</a>
+                <a href="{{ url_for('mypage') }}" class="active">마이페이지</a>
+            </nav>
+            <div class="header-actions">
+                <button class="btn-icon" id="theme-toggle" title="테마 변경">🌙</button>
+                <button class="btn-icon" id="color-toggle" title="색상 변경">🏆</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="page-content">
+            <div class="mypage-container">
+                <!-- Profile Section -->
+                <section class="profile-section">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="avatar-large">👤</div>
+                            <div class="profile-details">
+                                <h1 class="profile-name">사용자님</h1>
+                                <p class="profile-email">user@example.com</p>
+                                <span class="profile-badge">🌱 새싹 회원</span>
+                            </div>
+                            <button class="btn-secondary">프로필 편집</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Stats Section -->
+                <section class="stats-section">
+                    <h2 class="section-title">📊 나의 활동</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">💬</div>
+                            <div class="stat-info">
+                                <span class="stat-value">24</span>
+                                <span class="stat-label">총 상담 횟수</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-info">
+                                <span class="stat-value">15일</span>
+                                <span class="stat-label">가입 후 경과</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🪙</div>
+                            <div class="stat-info">
+                                <span class="stat-value">1,250</span>
+                                <span class="stat-label">남은 토큰</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📝</div>
+                            <div class="stat-info">
+                                <span class="stat-value">3회</span>
+                                <span class="stat-label">심리 검사</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Mental Health Trend -->
+                <section class="trend-section">
+                    <h2 class="section-title">💚 심리 상태 추이</h2>
+                    <div class="trend-card">
+                        <div class="trend-chart">
+                            <div class="trend-bar" style="--height: 60%"><span>1주차</span></div>
+                            <div class="trend-bar" style="--height: 70%"><span>2주차</span></div>
+                            <div class="trend-bar" style="--height: 65%"><span>3주차</span></div>
+                            <div class="trend-bar active" style="--height: 85%"><span>이번주</span></div>
+                        </div>
+                        <div class="trend-summary">
+                            <div class="trend-status positive">
+                                <span class="trend-arrow">↑</span>
+                                <span>지난주 대비 15% 개선</span>
+                            </div>
+                            <p class="trend-message">꾸준히 상담을 진행하고 계시네요! 긍정적인 변화가 보입니다. 😊</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Recent Consultations -->
+                <section class="history-section">
+                    <h2 class="section-title">🕐 최근 상담 기록</h2>
+                    <div class="history-list">
+                        <div class="history-item">
+                            <div class="history-icon">💭</div>
+                            <div class="history-content">
+                                <h3>스트레스 관리</h3>
+                                <p>업무 스트레스에 대한 대처 방법 상담</p>
+                            </div>
+                            <span class="history-date">오늘</span>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-icon">💭</div>
+                            <div class="history-content">
+                                <h3>수면 개선</h3>
+                                <p>불면증 완화를 위한 조언</p>
+                            </div>
+                            <span class="history-date">어제</span>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-icon">💭</div>
+                            <div class="history-content">
+                                <h3>대인관계 고민</h3>
+                                <p>직장 동료와의 관계 개선</p>
+                            </div>
+                            <span class="history-date">1월 3일</span>
+                        </div>
+                    </div>
+                    <button class="btn-text">전체 기록 보기 →</button>
+                </section>
+
+                <!-- Settings -->
+                <section class="settings-section">
+                    <h2 class="section-title">⚙️ 설정</h2>
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">알림 설정</span>
+                                <span class="setting-desc">상담 리마인더 및 알림</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">데이터 내보내기</span>
+                                <span class="setting-desc">상담 기록 다운로드</span>
+                            </div>
+                            <button class="btn-small">내보내기</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">계정 관리</span>
+                                <span class="setting-desc">비밀번호 변경, 계정 삭제</span>
+                            </div>
+                            <button class="btn-small">관리</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/pages.js') }}"></script>
+</body>
+
+</html>
