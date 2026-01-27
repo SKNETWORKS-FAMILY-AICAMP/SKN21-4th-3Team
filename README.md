@@ -1,4 +1,4 @@
-# SKN21-3rd-3Team
+# SKN21-4th-3Team
 
 <div align="center" style="margin:0; padding:0;">
   <img 
