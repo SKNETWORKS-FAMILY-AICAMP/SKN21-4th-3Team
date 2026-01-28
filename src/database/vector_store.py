@@ -1,9 +1,9 @@
 """
 FileName    : vector_store.py
-Auth        : 박수빈
-Date        : 2026-01-03
+Auth        : 박수빈, 우재현
+Date        : 2026-01-28
 Description : ChromaDB 벡터 스토어 래퍼 클래스 - 상담 데이터 임베딩 및 유사도 검색
-Issue/Note  : OpenAI Embedding 사용, 메타데이터 필터링 지원
+Issue/Note  : OpenAI Embedding 사용, 메타데이터 필터링 지원, Pydantic Settings 적용
 """
 
 # -------------------------------------------------------------
@@ -19,8 +19,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from config.db_config import DatabaseConfig
-from config.model_config import OpenAIConfig
+from config.db_config import db_settings
+from config.model_config import model_settings
 
 # -------------------------------------------------------------
 # Vector Store Class
@@ -44,15 +44,15 @@ class VectorStore:
             persist_directory: ChromaDB 저장 경로 (None이면 기본 경로 사용)
         """
         # 디렉토리 생성
-        DatabaseConfig.ensure_directories()
+        db_settings.ensure_directories()
         
         # ChromaDB 클라이언트 초기화
-        persist_path = persist_directory or str(DatabaseConfig.CHROMA_DB_DIR)
+        persist_path = persist_directory or str(db_settings.CHROMA_DB_DIR)
         self.client = chromadb.PersistentClient(path=persist_path)
         
         # 컬렉션 가져오기 또는 생성
         self.collection = self.client.get_or_create_collection(
-            name=DatabaseConfig.CHROMA_COLLECTION_NAME,
+            name=db_settings.CHROMA_COLLECTION_NAME,
             metadata={"description": "심리 상담 데이터 임베딩 컬렉션"}
         )
     
@@ -231,9 +231,9 @@ class VectorStore:
         컬렉션의 모든 문서 삭제 (주의: 복구 불가)
         """
         # 컬렉션 삭제 후 재생성
-        self.client.delete_collection(DatabaseConfig.CHROMA_COLLECTION_NAME)
+        self.client.delete_collection(db_settings.CHROMA_COLLECTION_NAME)
         self.collection = self.client.get_or_create_collection(
-            name=DatabaseConfig.CHROMA_COLLECTION_NAME,
+            name=db_settings.CHROMA_COLLECTION_NAME,
             metadata={"description": "심리 상담 데이터 임베딩 컬렉션"}
         )
     
@@ -256,8 +256,9 @@ if __name__ == "__main__":
     
     # VectorStore 인스턴스 생성
     vector_store = VectorStore()
-    print(f"컬렉션 생성 완료: {DatabaseConfig.CHROMA_COLLECTION_NAME}")
+    print(f"컬렉션 생성 완료: {db_settings.CHROMA_COLLECTION_NAME}")
     print(f"현재 문서 수: {vector_store.get_document_count()}")
+
     
     # 테스트 문서 추가
     test_docs = [

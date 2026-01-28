@@ -1,9 +1,9 @@
 """
 FileName    : database_schema.py
-Auth        : 박수빈
-Date        : 2026-01-03
+Auth        : 박수빈, 우재현
+Date        : 2026-01-28
 Description : SQLAlchemy ORM 모델 정의 - 사용자, 채팅 세션, 상담 데이터 등
-Issue/Note  : SQLite 기반, JSON 필드는 SQLAlchemy의 JSON 타입 사용
+Issue/Note  : SQLite 기반, JSON 필드는 SQLAlchemy의 JSON 타입 사용, Pydantic Settings 적용
 """
 
 # -------------------------------------------------------------
@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from config.db_config import DatabaseConfig
+from config.db_config import db_settings
 
 # -------------------------------------------------------------
 # SQLAlchemy Base
@@ -134,9 +134,6 @@ class ChatMessage(Base):
         return f"<ChatMessage(id={self.id}, role='{self.role}')>"
 
 
-
-
-
 # -------------------------------------------------------------
 # Expert Referral Model (전문가 연결)
 # -------------------------------------------------------------
@@ -177,10 +174,10 @@ def init_database(echo: bool = False) -> Engine:
         SQLAlchemy Engine 객체
     """
     # 디렉토리 생성
-    DatabaseConfig.ensure_directories()
+    db_settings.ensure_directories()
     
     # 엔진 생성
-    engine = create_engine(DatabaseConfig.get_sqlite_url(), echo=echo)
+    engine = create_engine(db_settings.get_sqlite_url(), echo=echo)
     
     # 테이블 생성
     Base.metadata.create_all(engine)
@@ -203,9 +200,10 @@ def get_session(engine: Engine):
 if __name__ == "__main__":
     print("데이터베이스 초기화 중...")
     engine = init_database(echo=True)
-    print(f"데이터베이스 생성 완료: {DatabaseConfig.SQLITE_DB_PATH}")
+    print(f"데이터베이스 생성 완료: {db_settings.SQLITE_DB_PATH}")
     
     # 테스트 세션
     session = get_session(engine)
     print("세션 생성 완료")
     session.close()
+
