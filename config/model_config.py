@@ -36,6 +36,11 @@ class ModelSettings(BaseSettings):
 # 전역 설정 인스턴스
 model_settings = ModelSettings()
 
+# ChromaDB 등 외부 라이브러리가 환경변수에서 API 키를 찾을 수 있도록 설정
+os.environ["OPENAI_API_KEY"] = model_settings.OPENAI_API_KEY
+os.environ["TAVILY_API_KEY"] = model_settings.TAVILY_API_KEY
+
+
 def create_chat_model() -> ChatOpenAI:
     """
     model_settings.OPENAI_CHAT_MODEL에서 모델이름을 가져와 ChatOpenAI 모델을 실질적으로 생성
