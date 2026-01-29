@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config.db_config import db_settings
 from config.model_config import model_settings
+import torch
 
 # -------------------------------------------------------------
 # Vector Store Class
@@ -50,10 +51,28 @@ class VectorStore:
         persist_path = persist_directory or str(db_settings.CHROMA_DB_DIR)
         self.client = chromadb.PersistentClient(path=persist_path)
         
-        # 컬렉션 가져오기 또는 생성
+        # [2026-01-28] GPU 가속을 위한 임베딩 함수 설정 (한국어 특화 모델)
+        from chromadb.utils import embedding_functions
+        
+        # [Debug] Explicit import check
+        try:
+            import sentence_transformers
+            print(f"[DEBUG] sentence_transformers imported successfully. Version: {sentence_transformers.__version__}")
+        except ImportError as e:
+            print(f"[ERROR] Failed to import sentence_transformers in VectorStore: {e}")
+            raise e
+
+        # device="cuda"로 설정 (PyTorch 2.10.0+cu128, RTX 5060 Blackwell 지원)
+        self.ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="jhgan/ko-sroberta-multitask",
+            device="cuda" if torch.cuda.is_available() else "cpu"
+        )
+        
+        # 컬렉션 가져오기 또는 생성 (임베딩 함수 명시)
         self.collection = self.client.get_or_create_collection(
             name=db_settings.CHROMA_COLLECTION_NAME,
-            metadata={"description": "심리 상담 데이터 임베딩 컬렉션"}
+            metadata={"description": "심리 상담 데이터 임베딩 컬렉션"},
+            embedding_function=self.ef
         )
     
     # -------------------------------------------------------------

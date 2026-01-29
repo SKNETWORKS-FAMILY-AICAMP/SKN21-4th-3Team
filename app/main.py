@@ -29,7 +29,9 @@ try:
     from src.database.db_manager import DatabaseManager
     RAG_AVAILABLE = True
 except ImportError as e:
+    import traceback
     print(f"[Warning] RAG 시스템 로드 실패: {e}")
+    traceback.print_exc()
     RAG_AVAILABLE = False
 
 # -------------------------------------------------------------
@@ -86,7 +88,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
+            password_hash TEXT, -- Allow NULL for anonymous users
             name TEXT,
             gender TEXT,
             birthdate TEXT,
@@ -910,14 +912,115 @@ def api_chat():
             if db_user:
                 user_id = db_user.id
         
-        # RAG 시스템으로 응답 생성
-        response = rag_chain.run(user_id, chat_session_id, message)
+        # 디버그 모드 체크
+        debug_mode = data.get('debug', False)
         
-        return jsonify({
-            'success': True,
-            'response': response,
-            'session_id': chat_session_id
-        })
+        if debug_mode:
+            # Intent Router 적용
+            from src.rag.intent_router import route_query, QueryIntent
+            
+            intent, direct_response, needs_rag = route_query(message)
+            print(f"[DEBUG] Intent: {intent.value} | Needs RAG: {needs_rag}")
+            
+            # GREETING/CHITCHAT: RAG 없이 직접 응답
+            if not needs_rag and direct_response:
+                db_manager.add_chat_message(chat_session_id, "user", message)
+                db_manager.add_chat_message(chat_session_id, "assistant", direct_response)
+                
+                return jsonify({
+                    'success': True,
+                    'response': direct_response,
+                    'session_id': chat_session_id,
+                    'debug': {
+                        'intent': intent.value,
+                        'rewritten_query': message,
+                        'sources': [],
+                        'context_length': 0,
+                        'note': 'RAG 검색 없이 직접 응답 (Intent Router)'
+                    }
+                })
+            
+            # CRISIS: 긴급 응답
+            if intent == QueryIntent.CRISIS:
+                db_manager.add_chat_message(chat_session_id, "user", message)
+                db_manager.add_chat_message(chat_session_id, "assistant", direct_response)
+                
+                return jsonify({
+                    'success': True,
+                    'response': direct_response,
+                    'session_id': chat_session_id,
+                    'debug': {
+                        'intent': intent.value,
+                        'rewritten_query': message,
+                        'sources': [],
+                        'context_length': 0,
+                        'note': '위기 상황 - 즉시 전문가 연결'
+                    }
+                })
+            
+            # EMOTION/QUESTION: RAG 파이프라인 실행
+            # 대화 히스토리 가져오기
+            history = []
+            if chat_session_id:
+                messages = db_manager.get_chat_history(chat_session_id)
+                history = [{"role": msg.role, "content": msg.content} for msg in messages]
+            
+            # 디버그 모드: run_with_debug 사용
+            debug_result = rag_chain.run_with_debug(message, history)
+            
+            # 메시지 저장
+            db_manager.add_chat_message(chat_session_id, "user", message)
+            answer = debug_result.get("answer", "")
+            if answer:
+                db_manager.add_chat_message(chat_session_id, "assistant", answer)
+            
+            # 소스 문서 정보 정리
+            source_docs = debug_result.get("source_docs", [])
+            debug_info = []
+            for i, doc in enumerate(source_docs[:5]):  # 상위 5개만
+                meta = doc.get("metadata", {})
+                # 더 풍부한 컨텍스트: window_text 또는 content 사용
+                window_text = meta.get("window_text", "") or ""
+                content = doc.get("content", "") or ""
+                # 더 긴 텍스트 우선 사용
+                display_content = window_text if len(window_text) > len(content) else content
+                
+                debug_info.append({
+                    "rank": i + 1,
+                    "session_id": meta.get("session_id", "N/A"),
+                    "category": meta.get("category", "N/A"),
+                    "turn_idx": meta.get("turn_idx", "N/A"),
+                    "content": display_content[:300] + "..." if len(display_content) > 300 else display_content,
+                    "distance": round(doc.get("distance", 0), 4)
+                })
+            
+            print(f"\n[DEBUG] Query: {message}")
+            print(f"[DEBUG] Intent: {intent.value}")
+            print(f"[DEBUG] Rewritten: {debug_result.get('rewritten_query', '')}")
+            print(f"[DEBUG] Sources: {len(source_docs)}개")
+            for d in debug_info:
+                print(f"  [{d['rank']}] {d['session_id']} (dist: {d['distance']})")
+            
+            return jsonify({
+                'success': True,
+                'response': answer,
+                'session_id': chat_session_id,
+                'debug': {
+                    'intent': intent.value,
+                    'rewritten_query': debug_result.get("rewritten_query", ""),
+                    'sources': debug_info,
+                    'context_length': len(debug_result.get("context", ""))
+                }
+            })
+        else:
+            # 일반 모드: 기존 로직
+            response = rag_chain.run(user_id, chat_session_id, message)
+            
+            return jsonify({
+                'success': True,
+                'response': response,
+                'session_id': chat_session_id
+            })
         
     except Exception as e:
         print(f"[Error] 채팅 처리 중 오류: {e}")
@@ -943,6 +1046,7 @@ def api_chat_stream():
     
     data = request.get_json()
     message = data.get('message', '').strip()
+    debug_mode = data.get('debug', False)
     
     if not message:
         return jsonify({
@@ -967,13 +1071,14 @@ def api_chat_stream():
     
     def generate_stream():
         """SSE 스트림 생성"""
+        import json  # Fix: Import at start of function scope
         nonlocal chat_session_id
         
         # RAG 시스템 사용 가능 여부 확인
         if rag_chain is None:
             demo_response = "안녕하세요! 심리 상담 AI입니다. 현재 데모 모드로 실행 중입니다."
             for char in demo_response:
-                yield f"data: {char}\n\n"
+                yield f"data: {json.dumps({'text': char}, ensure_ascii=False)}\n\n"
                 time.sleep(0.03)
             yield "data: [DONE]\n\n"
             return
@@ -995,19 +1100,16 @@ def api_chat_stream():
                 if db_user:
                     user_id = db_user.id
             
-            # RAG 시스템으로 응답 생성
-            response = rag_chain.run(user_id, chat_session_id, message)
-            
-            # 응답을 한 글자씩 스트리밍
-            for char in response:
-                yield f"data: {char}\n\n"
-                # 자연스러운 타이핑 효과를 위한 딜레이
-                if char in '.!?':
-                    time.sleep(0.08)  # 문장 끝에서 잠깐 멈춤
-                elif char in ',;:':
-                    time.sleep(0.05)  # 쉼표 등에서 약간 멈춤
+            # RAG 시스템으로 응답 스트리밍
+            for chunk in rag_chain.stream(user_id, chat_session_id, message, debug=debug_mode):
+                if debug_mode:
+                    # Debug mode: chunk is already a dict {'type': ..., 'data': ...}
+                    payload = json.dumps(chunk, ensure_ascii=False)
                 else:
-                    time.sleep(0.02)  # 일반 문자
+                    # Normal mode: chunk is text string
+                    payload = json.dumps({"text": chunk}, ensure_ascii=False)
+                
+                yield f"data: {payload}\n\n"
             
             yield "data: [DONE]\n\n"
             
@@ -1017,13 +1119,19 @@ def api_chat_stream():
     
     # 세션 ID 업데이트를 위해 응답 후 콜백으로 처리하지 않고,
     # 새 세션이 필요한 경우 미리 생성
-    if chat_session_id is None and rag_chain is not None and db_manager is not None:
-        db_user = db_manager.get_user_by_username(user_info['username'])
-        if db_user is None:
-            db_user = db_manager.create_user(user_info['username'])
-        chat_session_obj = db_manager.create_chat_session(db_user.id)
-        chat_session_id = chat_session_obj.id
-        session['chat_session_id'] = chat_session_id
+    try:
+        if chat_session_id is None and rag_chain is not None and db_manager is not None:
+            db_user = db_manager.get_user_by_username(user_info['username'])
+            if db_user is None:
+                db_user = db_manager.create_user(user_info['username'])
+            chat_session_obj = db_manager.create_chat_session(db_user.id)
+            chat_session_id = chat_session_obj.id
+            session['chat_session_id'] = chat_session_id
+    except Exception as e:
+        import traceback
+        print(f"[FATAL ERROR] Session setup failed:")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
     
     return Response(
         generate_stream(),

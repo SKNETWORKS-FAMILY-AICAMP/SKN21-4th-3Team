@@ -49,7 +49,7 @@ def create_chat_model() -> ChatOpenAI:
     print(f"모델이름: {model_name}")
 
     try:
-        model = ChatOpenAI(model=model_name, api_key=model_settings.OPENAI_API_KEY)
+        model = ChatOpenAI(model=model_name, api_key=model_settings.OPENAI_API_KEY, streaming=True)
     except Exception as e:
         raise RuntimeError(
             f"ChatOpenAI 초기화 실패 (model={model_name})"

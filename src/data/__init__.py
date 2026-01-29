@@ -3,7 +3,7 @@ FileName    : __init__.py
 Auth        : 수빈
 Date        : 2026-01-03
 Description : data 패키지 초기화 - 주요 클래스 export
-Issue/Note  : 
+Issue/Note  : [2026-01-28] db_loader 함수 정리 (기존 테이블 삭제로 인한 함수 제거)
 """
 
 from src.data.vector_loader import (
@@ -19,14 +19,7 @@ from src.data.vector_loader import (
 
 from src.data.db_loader import (
     # SQLite Load
-    get_all_counselings,
-    get_counseling_by_id,
-    get_counseling_by_source_id,
-    get_counselings_by_category,
-    get_counseling_count,
-    get_paragraphs_by_counseling,
-    get_paragraphs_by_speaker,
-    get_paragraph_count,
+    get_db_session,
     get_db_statistics
 )
 
@@ -40,13 +33,7 @@ __all__ = [
     "get_by_ids",
     "get_document_count",
     # SQLite Load
-    "get_all_counselings",
-    "get_counseling_by_id",
-    "get_counseling_by_source_id",
-    "get_counselings_by_category",
-    "get_counseling_count",
-    "get_paragraphs_by_counseling",
-    "get_paragraphs_by_speaker",
-    "get_paragraph_count",
+    "get_db_session",
     "get_db_statistics"
 ]
+

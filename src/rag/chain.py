@@ -1,7 +1,7 @@
 """
 FileName    : chain.py
 Auth        : 우재현
-Date        : 2026-01-06
+Date        : 2026-01-29
 Description : RAG 전체 파이프라인 관리
 Issue/Note  : DB 연결, Rewrite, Retrieve, Answer 모든 단계 통합
 """
@@ -26,6 +26,7 @@ from src.database.vector_store import VectorStore
 from src.rag.retriever import create_retriever, load_vector_db
 from src.rag.rewrite import create_rewrite_chain, format_history
 from src.rag.answer import create_answer_chain, format_sources
+from src.rag.intent_router import QueryIntent, route_query, CRISIS_INTENTS
 
 # -------------------------------------------------------------
 # RAG Main Class
@@ -125,8 +126,8 @@ class RAGChain:
     def run(self, user_id: int, session_id: int, query: str) -> str:
         """
         사용자 발화에 대한 RAG 응답 생성 및 처리 전체 과정
+        Intent Router를 통해 처리 경로 분기
         """
-        # (기존 로직 유지하되 run_with_debug 호출로 대체 가능하나, 안전하게 기존 구조 유지)
         print(f"\n[Flow Start] User: {user_id}, Session: {session_id}")
         
         # 1. 사용자 메시지 저장
@@ -143,36 +144,166 @@ class RAGChain:
         start_time = time.time()
         
         try:
-            # 3. 체인 실행
-            result = self.rag_pipeline.invoke({
-                "query": query,
-                "history_text": history_text
-            })
+            # 3. Intent 분류 및 라우팅
+            intent, direct_response, needs_rag = route_query(query, self.model)
+            print(f"[Router] Intent: {intent.value}, Needs RAG: {needs_rag}")
             
-            answer = result["answer"].strip()
-            # ... (나머지 후처리 로직)
+            # 4. 분기 처리
+            if direct_response and not needs_rag:
+                # 직접 응답 (GREETING, CHITCHAT, CRISIS)
+                answer = direct_response
+                
+                # CRISIS인 경우 전문가 연결 기록
+                if intent in CRISIS_INTENTS:
+                    self._handle_expert_referral(session_id, answer)
+            else:
+                # RAG 파이프라인 실행 (EMOTION, QUESTION)
+                result = self.rag_pipeline.invoke({
+                    "query": query,
+                    "history_text": history_text
+                })
+                answer = result["answer"].strip()
             
-            # 4. 전문가 연결 감지 (후처리)
+            # 5. 전문가 연결 태그 후처리
             if "[EXPERT_REFERRAL_NEEDED]" in answer:
                 answer = answer.replace("[EXPERT_REFERRAL_NEEDED]", "").strip()
                 self._handle_expert_referral(session_id, answer)
-                if "상담" not in answer:
-                    answer += "\n"
-                    # answer += "\n\n(전문가와의 상담이 필요해 보여 전문 상담 센터 정보를 준비하고 있습니다.)"
             
-            # 5. Assistant 메시지 저장
+            # 6. Assistant 메시지 저장
             self.db.add_chat_message(session_id, "assistant", answer)
             
             end_time = time.time()
             elapsed_time = end_time - start_time
             print(f"[System] Response Time: {elapsed_time:.2f}s")
             
-            print(f"[Flow End] 답변 등 생성 완료")
+            print(f"[Flow End] 답변 생성 완료 (Intent: {intent.value})")
             return answer
             
         except Exception as e:
             print(f"[Error] RAG 파이프라인 실패: {e}")
             return "죄송합니다. 처리 중 오류가 발생했습니다."
+
+    def stream(self, user_id: int, session_id: int, query: str, debug: bool = False):
+        """
+        스트리밍 방식으로 RAG 응답 생성 (SSE용 제너레이터)
+        
+        Args:
+            user_id: 사용자 ID
+            session_id: 세션 ID
+            query: 사용자 질문
+            debug: 디버그 모드 여부
+            
+        Yields:
+            str or dict: 텍스트 청크 또는 디버그 정보
+        """
+        print(f"\n[Stream Start] User: {user_id}, Session: {session_id}")
+        
+        # 1. 사용자 메시지 저장
+        self.db.add_chat_message(session_id, "user", query)
+        
+        # 2. 대화 히스토리 로드
+        history_objs = self.db.get_chat_history(session_id)
+        history_dicts = [{"role": msg.role, "content": msg.content} for msg in history_objs]
+        pre_history = history_dicts[:-1]
+        history_text = format_history(pre_history)
+        
+        try:
+            # 3. Intent 분류 및 라우팅
+            intent, direct_response, needs_rag = route_query(query, self.model)
+            print(f"[Router] Intent: {intent.value}, Needs RAG: {needs_rag}")
+            
+            # 4. 분기 처리
+            if direct_response and not needs_rag:
+                # 직접 응답
+                answer = direct_response
+                rewritten_query = query  # 직접 응답은 rewrite 없음
+                source_docs = []
+                
+                if intent in CRISIS_INTENTS:
+                    self._handle_expert_referral(session_id, answer)
+            else:
+                # RAG 파이프라인 실행
+                result = self.rag_pipeline.invoke({
+                    "query": query,
+                    "history_text": history_text
+                })
+                
+                answer = result["answer"].strip()
+                rewritten_query = result.get("rewritten_query", "")
+                source_docs = result.get("source_docs", [])
+                
+                # 전문가 연결 태그 처리
+                if "[EXPERT_REFERRAL_NEEDED]" in answer:
+                    answer = answer.replace("[EXPERT_REFERRAL_NEEDED]", "").strip()
+                    self._handle_expert_referral(session_id, answer)
+            
+            # 5. 스트리밍 출력
+            if debug:
+                # 디버그 모드: 상세 디버그 정보 전송
+                
+                # 소스 문서 상세 정보 정리
+                sources_detail = []
+                for i, doc in enumerate(source_docs[:5]):
+                    meta = doc.get("metadata", {})
+                    content = doc.get("content", "")
+                    # speaker 정보 변환 (counselor -> 상담사, client -> 내담자)
+                    raw_speaker = meta.get("speaker", "")
+                    if raw_speaker == "counselor":
+                        speaker = "상담사"
+                    elif raw_speaker == "client":
+                        speaker = "내담자"
+                    else:
+                        speaker = raw_speaker or "N/A"
+                    
+                    sources_detail.append({
+                        "rank": i + 1,
+                        "session_id": meta.get("session_id", "N/A"),
+                        "category": meta.get("category", "N/A"),
+                        "turn_idx": meta.get("turn_idx", "N/A"),
+                        "speaker": speaker,
+                        "distance": round(doc.get("distance", 0), 4),
+                        "content": content[:200] + "..." if len(content) > 200 else content
+                    })
+                
+                # context 길이 계산
+                try:
+                    context_text = result.get("context", "")
+                except NameError:
+                    context_text = ""
+                context_length = len(context_text)
+                
+                # 통합 디버그 정보 전송
+                yield {
+                    "type": "debug",
+                    "data": {
+                        "intent": intent.value,
+                        "rewritten_query": rewritten_query,
+                        "context_length": context_length,
+                        "sources_count": len(source_docs),
+                        "sources": sources_detail
+                    }
+                }
+                # 텍스트는 별도로 전송 (app.js에서 'content' 타입으로 처리)
+                yield {"type": "content", "data": answer}
+            else:
+                # 일반 모드: 문자 단위 스트리밍
+                for char in answer:
+                    yield char
+            
+            # 6. Assistant 메시지 저장
+            self.db.add_chat_message(session_id, "assistant", answer)
+            
+            print(f"[Stream End] 완료 (Intent: {intent.value})")
+            
+        except Exception as e:
+            print(f"[Error] 스트리밍 파이프라인 실패: {e}")
+            error_msg = "죄송합니다. 처리 중 오류가 발생했습니다."
+            if debug:
+                yield {"type": "error", "data": str(e)}
+                yield {"type": "content", "data": error_msg}
+            else:
+                for char in error_msg:
+                    yield char
 
     def run_with_debug(self, query: str, history: List[Dict[str, str]] = []) -> Dict[str, Any]:
         """
@@ -239,6 +370,7 @@ if __name__ == "__main__":
     try:
         user = test_db.create_user("test_lcel_user_01")
     except Exception:
+        test_db.session.rollback()  # IntegrityError 후 rollback 필요
         user = test_db.get_user_by_username("test_lcel_user_01")
         
     session = test_db.create_chat_session(user.id)
@@ -247,4 +379,9 @@ if __name__ == "__main__":
     q1 = "사는게 재미가 없어"
     ans1 = rag_chain.run(user.id, session.id, q1)
     print(f"\n[Bot]: {ans1}\n")
-
+    
+    # 3. 연속 대화 - 맥락 인식 테스트
+    print("=" * 50)
+    q2 = "그래서 어떻게 해야 해?"
+    ans2 = rag_chain.run(user.id, session.id, q2)
+    print(f"\n[Bot]: {ans2}\n")
