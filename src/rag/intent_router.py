@@ -15,7 +15,7 @@ Issue/Note  : GREETING/CHITCHAT은 RAG 없이 직접 응답
 
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from enum import Enum
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -222,13 +222,14 @@ def should_use_rag(intent: QueryIntent) -> bool:
     return intent in RAG_REQUIRED_INTENTS
 
 
-def route_query(query: str, model=None) -> Tuple[QueryIntent, Optional[str], bool]:
+def route_query(query: str, model=None, history: List[Dict[str, str]] = None) -> Tuple[QueryIntent, Optional[str], bool]:
     """
     쿼리를 분류하고 라우팅 정보를 반환합니다.
     
     Args:
         query: 사용자 입력
         model: LLM 모델
+        history: 대화 히스토리 (향후 맥락 기반 분류에 활용)
     
     Returns:
         Tuple of (intent, direct_response, needs_rag)
@@ -237,6 +238,9 @@ def route_query(query: str, model=None) -> Tuple[QueryIntent, Optional[str], boo
         - needs_rag: RAG 검색 필요 여부
     """
     print(f"\n[Router] Query: {query}")
+    if history:
+        print(f"[Router] History context: {len(history)} messages")
+    
     intent = classify_intent(query, model)
     
     if intent in CRISIS_INTENTS:
@@ -250,7 +254,6 @@ def route_query(query: str, model=None) -> Tuple[QueryIntent, Optional[str], boo
         direct = get_direct_response(intent)
         print(f"[Router] Intent: {intent.value} | Needs RAG: False (DIRECT)")
         return intent, direct, False
-
 
     # EMOTION/QUESTION: RAG 필요
     print(f"[Router] Intent: {intent.value} | Needs RAG: True")

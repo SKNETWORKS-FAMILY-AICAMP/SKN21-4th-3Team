@@ -25,9 +25,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # RAG 시스템 모듈 임포트
 try:
-    from src.rag.chain import RAGChain
+    # [LangGraph] 새로운 LangGraph 기반 RAG 시스템
+    from src.rag.langgraph_rag import LangGraphRAG
     from src.database.db_manager import DatabaseManager
     RAG_AVAILABLE = True
+    # [Legacy] 기존 LCEL 기반 RAG (롤백 시 사용)
+    # from src.rag.chain import RAGChain
 except ImportError as e:
     import traceback
     print(f"[Warning] RAG 시스템 로드 실패: {e}")
@@ -118,8 +121,11 @@ db_manager = None
 if RAG_AVAILABLE:
     try:
         db_manager = DatabaseManager(echo=False)
-        rag_chain = RAGChain(db_manager=db_manager)
-        print("[INFO] RAG 시스템 초기화 완료")
+        # [LangGraph] 새로운 RAG 시스템 사용
+        rag_chain = LangGraphRAG(db_manager=db_manager)
+        print("[INFO] LangGraphRAG 시스템 초기화 완료")
+        # [Legacy] 기존 시스템 (롤백 시 주석 해제)
+        # rag_chain = RAGChain(db_manager=db_manager)
     except Exception as e:
         print(f"[Warning] RAG 시스템 초기화 실패: {e}")
         rag_chain = None
