@@ -5,9 +5,9 @@ Date        : 2026-01-29
 Description : Similarity + Contextual Hybrid Retriever (정석 버전)
 Issue/Note  :
   - Hybrid = Similarity(Dense) + Contextual
-  - BM25 완전 제거
   - 상담 도메인 정합성 + 속도 최적화
   - TIME 측정 포함
+  - python -m src.rag.retrievers_test.hybrid 실행 지원
 """
 
 # -------------------------------------------------------------

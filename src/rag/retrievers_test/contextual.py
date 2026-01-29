@@ -7,8 +7,7 @@ Description : 심리상담 & 명언 챗봇용 Contextual Retriever 구현
               같은 session_id 내에서 turn_index 주변(±window)의 문서를 확장하여 반환
 Issue/Note  :
   - VectorStore(ChromaDB) 구조는 그대로 유지하고 Retriever 단계에서 문맥 확장
-  - 반환 포맷은 기존 retriever들과 동일하게 유지:
-      [{"content": str, "metadata": dict, "distance": float}, ...]
+  - python -m src.rag.retrievers_test.contextual 실행 지원
 """
 
 # -------------------------------------------------------------

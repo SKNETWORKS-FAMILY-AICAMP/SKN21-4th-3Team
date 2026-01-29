@@ -1,14 +1,12 @@
 """
-FileName    : tf_idf.py
-Auth        : 조남웅
+FileName    : tf_ide.py
+Author      : 조남웅
 Date        : 2026-01-29
-Description : TF-IDF Retriever (Inverted Index Optimized)
-              - Full document scan 제거
-              - Token 기반 역색인 구조
-              - Similarity Retriever와 동일 출력 포맷
-Issue/Note  :
-  - 문서 수 제한 없음
-  - Pure Python TF-IDF의 구조적 성능 문제 해결
+Description : TF-IDF Retriever (Sparse Ranking Based)
+              - Inverted Index 기반
+              - distance 개념 제거
+              - BM25와 동일한 랭킹 평가 위치
+              - python -m src.rag.retrievers_test.tf_ide 실행 지원
 """
 
 # -------------------------------------------------------------
@@ -20,7 +18,6 @@ import math
 import re
 import time
 
-from src.database.vector_store import VectorStore
 from src.rag.retriever import load_vector_db
 
 # -------------------------------------------------------------
@@ -36,14 +33,16 @@ def tokenize(text: str) -> List[str]:
     return [t.lower() for t in _TOKEN_RE.findall(text)]
 
 # -------------------------------------------------------------
-# TF-IDF Retriever Factory (Inverted Index)
+# TF-IDF Retriever Factory (Sparse, Ranking Based)
 # -------------------------------------------------------------
 def create_tfidf_retriever(
-    vector_db: VectorStore,
+    vector_db,
     top_k: int = DEFAULT_TOP_K,
 ):
     """
-    Inverted-Index 기반 TF-IDF Retriever
+    Sparse 기반 TF-IDF Retriever
+    - cosine similarity score 기반 랭킹
+    - DIST 개념 없음
     """
 
     collection = vector_db.collection
@@ -53,7 +52,7 @@ def create_tfidf_retriever(
     metadatas: List[dict] = all_data["metadatas"]
 
     N = len(documents)
-    print(f"[INFO] TF-IDF indexing {N} documents (no truncation)")
+    print(f"[INFO] TF-IDF indexing {N} documents")
 
     # ---------------------------------------------------------
     # 1. Index Construction
@@ -68,7 +67,6 @@ def create_tfidf_retriever(
 
         for t, freq in tf.items():
             inverted_index[t].append((doc_id, freq))
-
         for t in tf.keys():
             df[t] += 1
 
@@ -91,15 +89,9 @@ def create_tfidf_retriever(
     print(f"[INFO] TF-IDF index built | vocab size = {len(inverted_index)}")
 
     # ---------------------------------------------------------
-    # 3. Retriever
+    # 3. Retriever (Ranking Only)
     # ---------------------------------------------------------
-    def retriever(
-        query: str,
-        category: Optional[str] = None,
-        speaker: Optional[str] = None,
-        min_severity: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
-
+    def retriever(query: str) -> List[Dict[str, Any]]:
         q_tokens = tokenize(query)
         tf_q = Counter(q_tokens)
 
@@ -120,15 +112,6 @@ def create_tfidf_retriever(
                 continue
 
             for doc_id, tf in postings:
-                meta = metadatas[doc_id]
-
-                if category and meta.get("category") != category:
-                    continue
-                if speaker and meta.get("speaker") != speaker:
-                    continue
-                if min_severity is not None and meta.get("severity", 0) < min_severity:
-                    continue
-
                 scores[doc_id] += q_weight * (tf * idf[t])
 
         if not scores:
@@ -137,34 +120,28 @@ def create_tfidf_retriever(
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
         results = []
-        for doc_id, score in ranked:
+        for doc_id, dot in ranked:
             if doc_norm[doc_id] == 0:
                 continue
 
-            sim = score / (q_norm * doc_norm[doc_id])
+            sim = dot / (q_norm * doc_norm[doc_id])
             results.append({
                 "content": documents[doc_id],
                 "metadata": metadatas[doc_id],
-                "distance": 1.0 - sim,
+                "score": sim,   # ✅ 랭킹 점수 (클수록 좋음)
             })
 
         return results
 
-    print("[INFO] TF-IDF Retriever ready (Inverted Index)")
+    print("[INFO] TF-IDF Retriever ready (Sparse, Ranking only)")
     return retriever
 
-# -------------------------------------------------------------
-# Debug / Standalone Test
-# -------------------------------------------------------------
-def main():
-    start_total = time.time()
-    print("[INFO] TF-IDF Retriever Test Start")
 
-    vector_db = load_vector_db()
-    load_end = time.time()
-    print(f"[TIME] VectorDB 로딩: {load_end - start_total:.4f}초")
-    
-    retriever = create_tfidf_retriever(vector_db)
+# =============================================================
+# Entry Point (python -m 실행용)
+# =============================================================
+if __name__ == "__main__":
+    print("[RUN] TF-IDF Retriever Test Start")
 
     test_queries = [
         "요즘 너무 불안해서 잠이 안 와",
@@ -174,29 +151,26 @@ def main():
         "위로가 필요해",
     ]
 
-    for q in test_queries:
-        print("\n" + "=" * 80)
-        print(f"[QUERY] {q}")
+    # Load Vector DB
+    t0 = time.time()
+    vector_db = load_vector_db()
+    t1 = time.time()
+    print(f"[TIME] DB Loading Time: {t1 - t0:.4f} sec")
 
-        start_time = time.time()
-        results = retriever(q)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
+    # Create Retriever
+    tfidf = create_tfidf_retriever(vector_db, top_k=5)
 
-        print(f"[TIME]: {elapsed_time:.4f}초")
+    # Run Tests
+    for idx, query in enumerate(test_queries, 1):
+        print("\n" + "=" * 60)
+        print(f"[QUERY {idx}] {query}")
 
-        for i, r in enumerate(results):
-            print("\n----------------------------------------")
-            print(r["content"][:300])
-            print("[META]", r["metadata"])
-            print("[DIST]", round(r["distance"], 6))
-            print(f"[DEBUG] Document {i+1}")
-    
-    end_total = time.time()
-    print(f"\n[TIME] 전체 실행 시간: {end_total - start_total:.4f}초")
+        qs = time.time()
+        results = tfidf(query)
+        qe = time.time()
 
-# -------------------------------------------------------------
-# Entry Point
-# -------------------------------------------------------------
-if __name__ == "__main__":
-    main()
+        print(f"[TIME] Retrieval Time: {qe - qs:.4f} sec")
+
+        for rank, r in enumerate(results, 1):
+            print(f"\n  [{rank}] SCORE = {r['score']:.6f}")
+            print(f"      {r['content'][:300]}")
