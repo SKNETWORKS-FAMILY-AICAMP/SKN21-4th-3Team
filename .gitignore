@@ -76,3 +76,17 @@ Thumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Distribution (배포용 압축 파일)
+distribution/
+distribution.zip
+mind_care_distribution.zip
+mind_care_data.zip
+mind_care_data.7z
+
+# Debug/Test scripts
+fix_db_schema.py
+check_*.py
+debug_*.py
+test_*.py
+pdf_content.txt

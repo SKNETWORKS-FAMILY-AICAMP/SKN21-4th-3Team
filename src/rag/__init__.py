@@ -10,6 +10,7 @@ from .chain import RAGChain
 from .retriever import create_retriever, load_vector_db
 from .rewrite import create_rewrite_chain, rewrite_query, format_history
 from .answer import create_answer_chain, generate_answer, format_sources
+from .intent_router import route_query, classify_intent, QueryIntent
 
 __all__ = [
     "RAGChain",
@@ -21,4 +22,7 @@ __all__ = [
     "create_answer_chain",
     "generate_answer",
     "format_sources",
+    "route_query",
+    "classify_intent",
+    "QueryIntent",
 ]

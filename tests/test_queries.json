@@ -1,0 +1,50 @@
+[
+    {
+        "query": "요즘 너무 우울해요",
+        "expected_session_ids": ["A107__S008", "D049__S002", "A122__S005"],
+        "category": "DEPRESSION",
+        "note": "우울 관련 쿼리"
+    },
+    {
+        "query": "잠을 못 자겠어요",
+        "expected_session_ids": ["A097__S002", "D026__S005", "D055__S005"],
+        "category": "DEPRESSION",
+        "note": "불면증 관련 쿼리"
+    },
+    {
+        "query": "불안해서 아무것도 할 수 없어요",
+        "expected_session_ids": ["N015__S008", "N032__S005", "X045__S001"],
+        "category": "ANXIETY",
+        "note": "불안장애 관련 쿼리"
+    },
+    {
+        "query": "직장에서 스트레스를 많이 받아요",
+        "expected_session_ids": ["X013__S005", "A110__S002", "A109__S003"],
+        "category": "NORMAL",
+        "note": "직장 스트레스 관련 쿼리"
+    },
+    {
+        "query": "술을 끊고 싶은데 힘들어요",
+        "expected_session_ids": ["D015__S004", "X051__S005", "X047__S008"],
+        "category": "ADDICTION",
+        "note": "알코올 중독 관련 쿼리"
+    },
+    {
+        "query": "가족과의 관계가 좋지 않아요",
+        "expected_session_ids": ["A107__S005", "A101__S001", "D060__S001"],
+        "category": "NORMAL",
+        "note": "가족 관계 관련 쿼리"
+    },
+    {
+        "query": "자해 충동이 있어요",
+        "expected_session_ids": ["N035__S002", "X041__S003", "N034__S007"],
+        "category": "DEPRESSION",
+        "note": "위기 상황 쿼리 (고위험)"
+    },
+    {
+        "query": "공황장애가 있는 것 같아요",
+        "expected_session_ids": ["N001__S003", "D064__S007", "D075__S010"],
+        "category": "ANXIETY",
+        "note": "공황장애 관련 쿼리"
+    }
+]

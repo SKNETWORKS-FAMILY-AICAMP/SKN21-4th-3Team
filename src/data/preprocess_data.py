@@ -128,6 +128,25 @@ def build_window_text(chunks, i: int, window: int = 1) -> str:
 
     return "\n".join(parts).strip()
 
+
+def get_next_counselor_response(chunks, i: int) -> str:
+    """
+    주어진 인덱스 이후의 상담사 응답을 반환
+    
+    Args:
+        chunks: 청크 리스트
+        i: 현재 내담자 발화 인덱스
+    
+    Returns:
+        다음 상담사 응답 텍스트 (없으면 빈 문자열)
+    """
+    for j in range(i + 1, len(chunks)):
+        if chunks[j].get("speaker") == "상담사":
+            return normalize_text(chunks[j].get("utterance", ""))
+    return ""
+
+
+
 # -------------------------------------------------------------
 # STEP 3. Text chunking
 # -------------------------------------------------------------
@@ -332,40 +351,81 @@ def main(txt_root, json_root, out_dir, window: int = 1):
     # -------------------------------------------------------------
     # STEP 6-2. Build VectorDB documents (docs_for_vectordb.jsonl)
     # -------------------------------------------------------------
+    # [2026-01-28] 내담자 질문 중심 임베딩으로 변경
+    #   - text: 내담자 발화만 임베딩 대상으로 선별
+    #   - metadata.context_text: 앞뒤 대화 맥락 저장
+    #   - metadata.counselor_response: 해당 질문에 대한 상담사 응답 저장
+    # -------------------------------------------------------------
 
     docs = []
 
-    # ✅ 벡터DB 문서는 align_ok와 분리:
-    #    - chunks가 있으면 문서를 만든다
-    #    - labels가 있으면 metadata에 category로 넣고, 없으면 None
     docs_payloads = [x for x in payloads if x.get("chunks")]
 
+    start_idx = 0
+    # [2026-01-28] 안전장치 키워드 (이 단어가 있으면 짧아도 버리지 않음)
+    SAFE_KEYWORDS = [
+        "죽고", "살기 싫", "자살", "뛰어내", "차라리", "끝내고", 
+        "우울", "비참", "허무", "불안", "무서", "두려", "화나", "눈물", "괴로", 
+        "숨", "가슴", "심장", "머리", "잠",
+        "스트레스"
+    ]
+
     for s in docs_payloads:
-        session_id = s["session_id"]
-        source_id = s["source_id"]
-        category_default = s.get("category", "")
-        chunks = s["chunks"]
-        labels = s.get("labels", [])
+            session_id = s["session_id"]
+            source_id = s["source_id"]
+            category_default = s.get("category", "")
+            chunks = s["chunks"]
+            labels = s.get("labels", [])
 
-        for i in range(len(chunks)):
-            text = build_window_text(chunks, i, window=window)
+            for i, chunk in enumerate(chunks):
+                # 내담자 발화만 임베딩 대상으로 선별
+                if chunk.get("speaker") != "내담자":
+                    continue
+                
+                # 내담자 질문 텍스트 (검색 대상)
+                client_query = normalize_text(chunk.get("utterance", ""))
+                if not client_query:
+                    continue
+                
+                # [Noise Filtering] 10글자 미만이고, 안전 키워드가 없으면 제외
+                if len(client_query) < 10:
+                    is_safe = any(k in client_query for k in SAFE_KEYWORDS)
+                    if not is_safe:
+                        continue # Skip noise
 
-            # 라벨이 있으면 사용, 없으면 None
-            category = labels[i] if i < len(labels) else None
-            if category is None:
-                category = None  # 명시적으로 None 유지 (원하면 "UNLABELED"로 바꿔도 됨)
+                # [Contextual Embedding] 이전 턴(상담사 질문)을 메타데이터로 저장
+                prev_counselor_question = ""
+                if i > 0 and chunks[i-1].get("speaker") == "상담사":
+                     prev_counselor_question = normalize_text(chunks[i-1].get("utterance", ""))
 
-            docs.append({
-                "text": text,
-                "metadata": {
-                    "session_id": session_id,
-                    "source_id": source_id,
-                    "default_category": category_default,
-                    "category": category,
-                    "turn_index": i,
-                    "align_ok": bool(s.get("align_ok", False)),
-                }
-            })
+                # 임베딩 텍스트: 내담자 질문만 (평가서 피드백 반영)
+                # "임베딩 단계에서는 내담자의 질문 중심으로 벡터화를 수행"
+                
+                # 대화 맥락 (메타데이터로 저장)
+                context_text = build_window_text(chunks, i, window=window)
+                
+                # 상담사 응답 (메타데이터로 저장)
+                counselor_response = get_next_counselor_response(chunks, i)
+
+                # 라벨이 있으면 사용, 없으면 None
+                category = labels[i] if i < len(labels) else None
+
+                docs.append({
+                    "text": client_query,  # 내담자 질문만 임베딩 (평가서 피드백 반영)
+                    "metadata": {
+                        "session_id": session_id,
+                        "source_id": source_id,
+                        "default_category": category_default,
+                        "category": category,
+                        "turn_index": i,
+                        "prev_counselor_question": prev_counselor_question,  # 이전 상담사 질문
+                        "context_text": context_text,           # 검색 후 참조용
+                        "counselor_response": counselor_response,  # LLM 응답 생성시 참조
+                        "align_ok": bool(s.get("align_ok", False)),
+                    }
+                })
+
+
 
 
     docs_path = os.path.join(out_dir, "docs_for_vectordb.jsonl")

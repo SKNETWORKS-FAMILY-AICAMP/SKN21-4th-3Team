@@ -190,8 +190,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="message-avatar"><img src="/static/images/icon.jpg" alt="Bot"></div>
                     <div class="message-content">
                         <div class="message-bubble">
-                            <p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
-                            <p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
+<p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
+<p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
                         </div>
                     </div>
                 </div>
@@ -283,8 +283,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="message-avatar"><img src="/static/images/icon.jpg" alt="Bot"></div>
                         <div class="message-content">
                             <div class="message-bubble">
-                                <p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
-                                <p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
+<p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
+<p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
                             </div>
                         </div>
                     </div>
@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /**
-     * Send user message and get bot response (with streaming)
+     * Send user message and get bot response (with streaming or debug mode)
      */
     async function sendMessage() {
         const text = messageInput.value.trim();
@@ -458,18 +458,20 @@ document.addEventListener('DOMContentLoaded', function () {
         addMessage(text, 'user');
         messageInput.value = '';
 
-        // Create bot message placeholder for streaming
+        // Check debug mode (Ctrl+D to toggle)
+        const debugMode = window.RAG_DEBUG_MODE || false;
+
         const botMessageId = 'streaming-msg-' + Date.now();
         createStreamingBotMessage(botMessageId);
 
         try {
-            // Call streaming API
+            // Call streaming API (Unified for both debug and normal modes)
             const response = await fetch('/api/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text, debug: debugMode })
             });
 
             if (!response.ok) {
@@ -502,9 +504,64 @@ document.addEventListener('DOMContentLoaded', function () {
                             updateStreamingMessage(botMessageId, data.slice(7).trim());
                             finalizeStreamingMessage(botMessageId);
                         } else {
-                            // Append character
-                            fullText += data;
-                            updateStreamingMessage(botMessageId, fullText);
+                            // Handle Dictionary (Debug info or Content) or String
+                            try {
+                                const parsed = JSON.parse(data);
+                                
+                                // Case 1: Debug Info Event
+                                if (parsed.type === 'debug') {
+                                    const debugInfo = parsed.data;
+                                    console.log('🔍 [RAG DEBUG]', debugInfo);
+                                    
+                                    // Add debug panel
+                                    const intentBadge = debugInfo.intent ? `<span style="background: #89b4fa; color: #1e1e2e; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${debugInfo.intent}</span>` : '';
+                                    const noteMsg = debugInfo.note ? `<div style="background: #a6e3a1; color: #1e1e2e; padding: 8px; border-radius: 4px; margin-bottom: 8px;">${debugInfo.note}</div>` : '';
+                                    const sourcesSection = debugInfo.sources && debugInfo.sources.length > 0 
+                                        ? `<div style="font-weight: bold; margin-bottom: 4px;">📚 Retrieved Sources (Top 5):</div>
+                                           ${debugInfo.sources.map(src => `
+                                               <div style="background: #313244; padding: 8px; margin: 4px 0; border-radius: 4px;">
+                                                   <div style="color: #89b4fa;">[${src.rank}] Session: ${src.session_id} | Category: ${src.category || 'N/A'} | Turn: ${src.turn_idx || 'N/A'} | Dist: ${src.distance}</div>
+                                                   <div style="color: #a6adc8; font-size: 11px; margin-top: 4px; white-space: pre-wrap;">${escapeHtml(src.content || '(no content)')}</div>
+                                               </div>
+                                           `).join('')}`
+                                        : `<div style="color: #a6adc8;">📚 RAG 검색 없음 (직접 응답)</div>`;
+                                    
+                                    const debugHTML = `
+                                        <div class="debug-panel" style="background: #1e1e2e; color: #cdd6f4; padding: 12px; margin: 8px 0 8px 50px; border-radius: 8px; font-family: monospace; font-size: 12px; border-left: 3px solid #f5c211;">
+                                            <div style="margin-bottom: 8px; font-weight: bold; color: #f5c211;">📊 RAG Debug Info${intentBadge}</div>
+                                            ${noteMsg}
+                                            <div style="margin-bottom: 4px;"><strong>Rewritten Query:</strong> ${escapeHtml(debugInfo.rewritten_query || 'N/A')}</div>
+                                            <div style="margin-bottom: 8px;"><strong>Context Length:</strong> ${debugInfo.context_length || 0} chars</div>
+                                            ${sourcesSection}
+                                        </div>
+                                    `;
+                                    // Insert AFTER the bot message (which is currently streaming)
+                                    // Note: This puts it below the typing bubble.
+                                    chatMessages.insertAdjacentHTML('beforeend', debugHTML);
+                                    scrollToBottom();
+                                    continue;
+                                }
+                                
+                                // Case 2: Content Chunk
+                                let content = '';
+                                if (parsed.type === 'content') {
+                                    content = parsed.data;
+                                } else if (parsed.text !== undefined) {
+                                    // Legacy format
+                                    content = parsed.text;
+                                } else {
+                                    // Fallback
+                                    content = data;
+                                }
+                                
+                                fullText += content;
+                                updateStreamingMessage(botMessageId, fullText);
+                                
+                            } catch (e) {
+                                // Not JSON, treat as raw text
+                                fullText += data;
+                                updateStreamingMessage(botMessageId, fullText);
+                            }
                         }
                     }
                 }
@@ -516,6 +573,17 @@ document.addEventListener('DOMContentLoaded', function () {
             finalizeStreamingMessage(botMessageId);
         }
     }
+    
+    // Debug mode toggle (Ctrl+D)
+    window.RAG_DEBUG_MODE = false;
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            window.RAG_DEBUG_MODE = !window.RAG_DEBUG_MODE;
+            showToast(window.RAG_DEBUG_MODE ? '🔍 디버그 모드 ON' : '✨ 일반 모드');
+            console.log('RAG Debug Mode:', window.RAG_DEBUG_MODE);
+        }
+    });
 
     /**
      * Create a placeholder bot message for streaming
