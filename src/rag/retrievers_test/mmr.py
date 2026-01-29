@@ -28,7 +28,6 @@ if not hasattr(db_config, "OpenAIConfig"):
 # -------------------------------------------------------------
 
 from typing import Any, List, Dict, Optional
-import time
 
 from src.database.vector_store import VectorStore
 from src.rag.retriever import load_vector_db  # 컬렉션 자동 선택 로딩 함수 재사용
@@ -186,13 +185,9 @@ def debug_retriever(retriever, query: str):
     print("\n[DEBUG] Retriever Test (MMR)")
     print(f"[DEBUG] Query: {query}")
 
-    start_time = time.time()
     results = retriever(query)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
 
     print(f"[DEBUG] Retrieved documents count: {len(results)}")
-    print(f"[TIME]: {elapsed_time:.4f}초")
 
     for idx, r in enumerate(results[:3]):
         print(f"\n[DEBUG] Document {idx + 1}")
@@ -207,13 +202,9 @@ def debug_retriever(retriever, query: str):
 # -------------------------------------------------------------
 
 def main():
-    start_total = time.time()
-    
     # retriever.py의 load_vector_db를 사용하여
     # 문서가 존재하는 컬렉션을 자동으로 선택합니다.
     vector_db = load_vector_db()
-    load_end = time.time()
-    print(f"[TIME] VectorDB 로딩: {load_end - start_total:.4f}초")
 
     retriever = create_mmr_retriever(
         vector_db=vector_db,
@@ -232,9 +223,6 @@ def main():
 
     for query in test_queries:
         debug_retriever(retriever, query)
-    
-    end_total = time.time()
-    print(f"\n[TIME] 전체 실행 시간: {end_total - start_total:.4f}초")
 
 
 # -------------------------------------------------------------

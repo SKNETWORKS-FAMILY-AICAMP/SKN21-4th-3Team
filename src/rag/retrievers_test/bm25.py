@@ -1,36 +1,30 @@
 """
 FileName    : bm25.py
-Auth        : 조남웅
+Author      : 조남웅
 Date        : 2026-01-29
-Description : BM25 Retriever (Inverted Index Optimized)
-              - Full document scan 제거
-              - Token 기반 역색인으로 시밀러급 속도 달성
-Issue/Note  :
-  - 문서 수 제한 없음
-  - Pure Python BM25의 구조적 한계 해결
-  - Similarity Retriever와 동일한 출력 포맷 유지
+Description : BM25 Retriever (Sparse Ranking Based)
+              - Inverted Index 기반
+              - distance 개념 제거
+              - python -m src.rag.retrievers_test.bm25 실행 지원
 """
 
 # -------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from collections import Counter, defaultdict
 import math
 import re
 import time
 
-from src.database.vector_store import VectorStore
 from src.rag.retriever import load_vector_db
 
 # -------------------------------------------------------------
 # Constants
 # -------------------------------------------------------------
 DEFAULT_TOP_K = 5
-
 K1 = 1.5
 B = 0.75
-
 _TOKEN_RE = re.compile(r"[A-Za-z0-9가-힣]+")
 
 # -------------------------------------------------------------
@@ -40,46 +34,39 @@ def tokenize(text: str) -> List[str]:
     return [t.lower() for t in _TOKEN_RE.findall(text)]
 
 # -------------------------------------------------------------
-# BM25 Retriever Factory (Inverted Index)
+# BM25 Retriever Factory
 # -------------------------------------------------------------
-def create_bm25_retriever(
-    vector_db: VectorStore,
-    top_k: int = DEFAULT_TOP_K,
-):
+def create_bm25_retriever(vector_db, top_k: int = DEFAULT_TOP_K):
     """
-    Inverted-Index 기반 BM25 Retriever
+    Sparse 기반 BM25 Retriever
+    - score 기반 랭킹만 제공
+    - DIST 평가 대상 아님
     """
 
     collection = vector_db.collection
     all_data = collection.get(include=["documents", "metadatas"])
 
-    documents: List[str] = all_data["documents"]
-    metadatas: List[dict] = all_data["metadatas"]
-
+    documents = all_data["documents"]
+    metadatas = all_data["metadatas"]
     N = len(documents)
-    print(f"[INFO] BM25 indexing {N} documents (no truncation)")
 
-    # ---------------------------------------------------------
-    # 1. Index Construction
-    # ---------------------------------------------------------
-    inverted_index = defaultdict(list)   # token -> [(doc_id, tf)]
-    doc_lens: List[int] = []
+    print(f"[INFO] BM25 indexing {N} documents")
+
+    inverted_index = defaultdict(list)
+    doc_lens = []
     df = defaultdict(int)
 
     for doc_id, doc in enumerate(documents):
         tokens = tokenize(doc)
         tf = Counter(tokens)
-
         doc_lens.append(len(tokens))
 
         for t, freq in tf.items():
             inverted_index[t].append((doc_id, freq))
-
         for t in tf.keys():
             df[t] += 1
 
     avgdl = sum(doc_lens) / N
-
     idf = {
         t: math.log(1 + (N - df_t + 0.5) / (df_t + 0.5))
         for t, df_t in df.items()
@@ -87,16 +74,7 @@ def create_bm25_retriever(
 
     print(f"[INFO] BM25 index built | vocab size = {len(inverted_index)}")
 
-    # ---------------------------------------------------------
-    # 2. Retriever
-    # ---------------------------------------------------------
-    def retriever(
-        query: str,
-        category: Optional[str] = None,
-        speaker: Optional[str] = None,
-        min_severity: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
-
+    def retriever(query: str) -> List[Dict[str, Any]]:
         q_tokens = tokenize(query)
         scores = defaultdict(float)
 
@@ -108,15 +86,6 @@ def create_bm25_retriever(
             idf_t = idf.get(t, 0.0)
 
             for doc_id, tf in postings:
-                meta = metadatas[doc_id]
-
-                if category and meta.get("category") != category:
-                    continue
-                if speaker and meta.get("speaker") != speaker:
-                    continue
-                if min_severity is not None and meta.get("severity", 0) < min_severity:
-                    continue
-
                 numerator = tf * (K1 + 1)
                 denominator = tf + K1 * (1 - B + B * (doc_lens[doc_id] / avgdl))
                 scores[doc_id] += idf_t * (numerator / denominator)
@@ -125,68 +94,54 @@ def create_bm25_retriever(
             return []
 
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
-        max_score = ranked[0][1]
 
-        results = []
-        for doc_id, score in ranked:
-            if score <= 0:
-                continue
-
-            results.append({
+        return [
+            {
                 "content": documents[doc_id],
                 "metadata": metadatas[doc_id],
-                "distance": 1.0 - (score / max_score),
-            })
+                "score": score,
+            }
+            for doc_id, score in ranked
+        ]
 
-        return results
-
-    print("[INFO] BM25 Retriever ready (Inverted Index)")
+    print("[INFO] BM25 Retriever ready (Sparse, Ranking only)")
     return retriever
 
-# -------------------------------------------------------------
-# Debug / Standalone Test
-# -------------------------------------------------------------
-def main():
-    start_total = time.time()
-    print("[INFO] BM25 Retriever Test Start")
 
-    vector_db = load_vector_db()
-    load_end = time.time()
-    print(f"[TIME] VectorDB 로딩: {load_end - start_total:.4f}초")
-    
-    retriever = create_bm25_retriever(vector_db)
+# =============================================================
+# Entry Point
+# =============================================================
+if __name__ == "__main__":
+    print("[RUN] BM25 Retriever Test Start")
 
     test_queries = [
         "요즘 너무 불안해서 잠이 안 와",
         "계속 실패하는 느낌이야",
         "아무것도 하기 싫어",
         "미래가 걱정돼",
-        "위로가 필요해",
+        "위로가 필요해"
     ]
 
-    for q in test_queries:
-        print("\n" + "=" * 80)
-        print(f"[QUERY] {q}")
+    # Load DB
+    t0 = time.time()
+    vector_db = load_vector_db()
+    t1 = time.time()
+    print(f"[TIME] DB Loading Time: {t1 - t0:.4f} sec")
 
-        start_time = time.time()
-        results = retriever(q)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
+    # Create Retriever
+    bm25 = create_bm25_retriever(vector_db, top_k=5)
 
-        print(f"[TIME]: {elapsed_time:.4f}초")
+    # Run Tests
+    for idx, query in enumerate(test_queries, 1):
+        print("\n" + "=" * 60)
+        print(f"[QUERY {idx}] {query}")
 
-        for i, r in enumerate(results):
-            print("\n----------------------------------------")
-            print(r["content"][:300])
-            print("[META]", r["metadata"])
-            print("[DIST]", round(r["distance"], 6))
-            print(f"[DEBUG] Document {i+1}")
-    
-    end_total = time.time()
-    print(f"\n[TIME] 전체 실행 시간: {end_total - start_total:.4f}초")
+        qs = time.time()
+        results = bm25(query)
+        qe = time.time()
 
-# -------------------------------------------------------------
-# Entry Point
-# -------------------------------------------------------------
-if __name__ == "__main__":
-    main()
+        print(f"[TIME] Retrieval Time: {qe - qs:.4f} sec")
+
+        for rank, r in enumerate(results, 1):
+            print(f"\n  [{rank}] SCORE = {r['score']:.4f}")
+            print(f"      {r['content'][:300]}")
