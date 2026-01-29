@@ -23,7 +23,7 @@ class ModelSettings(BaseSettings):
     )
 
     OPENAI_API_KEY: str
-    TAVILY_API_KEY: str
+    # TAVILY_API_KEY: str
     
     # 기본값 설정
     OPENAI_CHAT_MODEL: str = "gpt-4o"
@@ -38,7 +38,7 @@ model_settings = ModelSettings()
 
 # ChromaDB 등 외부 라이브러리가 환경변수에서 API 키를 찾을 수 있도록 설정
 os.environ["OPENAI_API_KEY"] = model_settings.OPENAI_API_KEY
-os.environ["TAVILY_API_KEY"] = model_settings.TAVILY_API_KEY
+# os.environ["TAVILY_API_KEY"] = model_settings.TAVILY_API_KEY
 
 
 def create_chat_model() -> ChatOpenAI:
