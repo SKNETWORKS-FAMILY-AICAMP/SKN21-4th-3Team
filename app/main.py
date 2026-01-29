@@ -38,8 +38,12 @@ except ImportError as e:
 # Flask App Configuration
 # -------------------------------------------------------------
 
+# 환경설정 로드 (config 디렉토리)
+from config.settings import app_settings
+from config.db_config import db_settings
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-in-production'  # 실제 배포 시 환경변수로 관리
+app.secret_key = app_settings.SECRET_KEY
 
 # 세션 설정
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -53,9 +57,8 @@ _new_session_requests = {}
 # Database Configuration
 # -------------------------------------------------------------
 
-# 데이터베이스 경로
-PROJECT_ROOT = Path(__file__).parent.parent
-DB_PATH = PROJECT_ROOT / "data" / "mind_care.db"
+# 데이터베이스 경로 (config/db_config.py에서 관리)
+DB_PATH = db_settings.SQLITE_DB_PATH
 
 
 def get_db_connection():
@@ -1162,4 +1165,4 @@ def api_survey():
 # =============================================================
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)

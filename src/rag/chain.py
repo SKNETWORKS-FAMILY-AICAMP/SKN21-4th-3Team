@@ -431,6 +431,34 @@ class RAGChain:
             else:
                 yield err_msg
 
+    async def stream_async(self, user_id: int, session_id: int, query: str, debug: bool = False):
+        """
+        비동기 스트리밍 응답 생성 (async generator)
+        Flask 비동기 라우트에서 사용
+        
+        Args:
+            user_id: 사용자 ID
+            session_id: 채팅 세션 ID
+            query: 사용자 질문
+            debug: 디버그 정보 포함 여부
+            
+        Yields:
+            debug=True: {"type": "debug"|"content", "data": ...}
+            debug=False: str (답변 청크)
+        """
+        import asyncio
+        
+        # 동기 stream 메서드를 비동기로 래핑
+        def sync_stream():
+            return list(self.stream(user_id, session_id, query, debug))
+        
+        # 동기 작업을 별도 스레드에서 실행
+        chunks = await asyncio.to_thread(sync_stream)
+        
+        # 청크를 하나씩 yield
+        for chunk in chunks:
+            yield chunk
+
     def run_with_debug(self, query: str, history: List[Dict[str, str]] = []) -> Dict[str, Any]:
         """
         [테스트/디버깅용] RAG 파이프라인의 중간 결과까지 포함하여 반환합니다.

@@ -10,10 +10,8 @@ Issue/Note  : Pydantic Settings 적용
 # Imports
 # -------------------------------------------------------------
 
-import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import ClassVar
 
 class DatabaseSettings(BaseSettings):
     """
@@ -21,7 +19,7 @@ class DatabaseSettings(BaseSettings):
     """
     # 환경 변수 설정
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent / ".env",
+        env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -39,6 +37,10 @@ class DatabaseSettings(BaseSettings):
     
     # ChromaDB
     CHROMA_COLLECTION_NAME: str = "psych_counseling_vectors"
+    
+    # [NEW] AWS RDS 설정 (프로덕션용)
+    # 환경변수 DATABASE_URL이 설정되면 RDS 사용, 없으면 SQLite 사용
+    DATABASE_URL: str = ""
 
     @property
     def DATA_DIR(self) -> Path:
@@ -62,9 +64,32 @@ class DatabaseSettings(BaseSettings):
 
     def get_sqlite_url(self) -> str:
         """
-        SQLAlchemy용 SQLite 연결 URL 반환
+        SQLAlchemy용 SQLite 연결 URL 반환 (개발용)
         """
         return f"sqlite:///{self.SQLITE_DB_PATH}"
+    
+    def get_database_url(self) -> str:
+        """
+        환경에 따른 DB URL 반환
+        - DATABASE_URL 환경변수가 있으면 사용 (RDS PostgreSQL)
+        - 없으면 로컬 SQLite 사용
+        """
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        return self.get_sqlite_url()
+    
+    def get_async_database_url(self) -> str:
+        """
+        비동기 DB URL 반환
+        - PostgreSQL: postgresql+asyncpg://...
+        - SQLite: sqlite+aiosqlite:///...
+        """
+        url = self.get_database_url()
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://")
+        elif url.startswith("sqlite:///"):
+            return url.replace("sqlite:///", "sqlite+aiosqlite:///")
+        return url
 
     def ensure_directories(self) -> None:
         """

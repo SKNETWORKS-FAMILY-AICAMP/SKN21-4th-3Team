@@ -17,7 +17,7 @@ class ModelSettings(BaseSettings):
     OpenAI 및 모델 설정을 관리하는 클래스 (Pydantic BaseSettings)
     """
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent / ".env",
+        env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )
