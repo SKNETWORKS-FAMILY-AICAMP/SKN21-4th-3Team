@@ -240,6 +240,7 @@
 ```
 **LangGraph 처리 구조**
 
+
 </br>
 
 ```mermaid
@@ -379,16 +380,41 @@ SKN21-4th-3Team/
 - 실시간 상담: RAG 엔진을 활용한 맥락 인지형 심리 상담 대화
 - 상담 리포트 발급: 상담 종료 후 대화 내용을 분석하여 PDF 결과 리포트 제공
 
-## ⚙️ 챗봇 동작 프로세스 (Pipeline)
+## ⚙️ 변경된 챗봇 동작 프로세스 (Pipeline)
+사용자의 발화가 입력되면 LangGraph 기반의 상태 관리 엔진이 의도를 분류하고, 최적의 노드(Node)를 순회하며 응답을 생성합니다.
 
-사용자의 발화가 입력되면 다음과 같은 단계를 거쳐 최적의 응답을 생성.
+### 1. Input & Intent Classification (의도 분류)
+- 사용자 메시지 수신 LLM을 통한 RAG 실행 여부 결정
 
-- Input: 사용자 메시지 수신 및 발화 의도 파악
-- Memory: SQLite DB를 활용한 대화 기록 및 세션 정보 로드
-- Retrieval: ChromaDB에서 유사 상담 사례 검색 (Similarity Search 적용)
-- Augmentation: 검색된 상담 맥락 + System Prompt(공감/위로 가이드) 결합
-- Generation: GPT-5-mini 모델을 통한 개인화된 상담 응답 생성
-- Safety Check: 정서 위험 신호 감지 시 안전 스크리닝 안내 로직 자동 활성화
+### 2. Adaptive Routing (동적 경로 선택)
+- Direct Path: 단순 인사나 일상 대화는 direct_respond 노드로 즉시 이동.
+- RAG Path: 심층 상담이 필요한 경우 rewrite 노드로 진입하여 쿼리 최적화 수행.
+
+### 3. Memory Management (상태 관리)
+- history를 통해 이전 대화 맥락(Session)을 그래프 상태에 로드.
+
+### 4. Retrieval & Augmentation (지식 검색 및 보강)
+- Query Rewrite: 사용자 질문을 검색에 최적화된 형태로 재작성.
+- context retriever: DB에서 유사 상담 사례 및 심리학적 지식 베이스 검색.
+- Prompt Augmentation: 검색된 페르소나와 상담 가이드를 결합하여 컨텍스트 생성.
+
+### 5. Generation & Streaming (응답 생성)
+- GPT-5-mini: 개인화된 공감/위로 답변 생성.
+- SSE Streaming: Flask 서버를 통해 토큰 단위로 실시간 사용자 전달.
+
+### 6. Safety & Closing (안전 스크리닝 및 종료)
+- Safety Check: 의도 분류 단계에서 감지된 위험 신호(CRISIS) 발생 시, 최우선적으로 안전 스크리닝 로직 활성화.
+- Session Summary: 대화 종료 시 CLOSING 노드를 통해 전체 세션 요약 및 상태 저장.
+
+
+### 기존 LCEL vs LangGraph 를 통한 변경 이유 요약
+
+| 항목 | LCEL (chain.py) | LangGraph (langgraph_rag.py) |
+|------|-----------------|------------------------------|
+| 구조 | 선형 파이프라인 | 그래프 기반 분기 |
+| 분기 처리 | if-else 로직 | 조건부 엣지 |
+| 상태 관리 | dict 전달 | TypedDict State |
+| 확장성 | 복잡해짐 | 노드 추가로 쉬움 |
 
 <br>
 
