@@ -738,7 +738,7 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
       <img src="images/DIST.png" width="260"/>
     </td>
     <td align="center">
-      <img src="images/Session_Consistency.pnmg" width="260"/>
+      <img src="images/Session_Consistency.png" width="260"/>
     </td>
     <td align="center">
       <img src="images/Turn_Continuity.png" width="260"/>
