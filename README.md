@@ -34,9 +34,8 @@
     <h3 style="margin: 10px 0 5px 0;">박수빈</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-        <strong>대장</strong>  | 임베딩 설계 <br/>
-        UI 화면 구현<br/>
-        UI 결합및 버그 수정<br/>
+        <strong>대장</strong>  | 전처리, 임베드 <br/>
+        UI, RDS<br/>
       </p>
     </div>
     <a href="https://github.com/sbpark2930-ui">
@@ -53,7 +52,6 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       테스트 설계 <br/> 
-      RAG 성능평가<br/> 
       평가 데이터셋 구축<br/>
       README 작성
       </p>
@@ -71,7 +69,8 @@
     <h3 style="margin: 10px 0 5px 0;">우재현</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      UI 결합및 버그 수정<br/>
+      RAG 구조개선<br/>
+      백엔드 로직 수정<br/>
       </p>
     </div>
     <a href="https://github.com/Wjaehyun">
@@ -105,8 +104,8 @@
     <h3 style="margin: 10px 0 5px 0;">장이선</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      데이터 전처리·청킹 <br/>
-      추가데이터 수집
+      데이터 전처리 <br/>
+      데이터 임베딩<br/>
       </p>
     </div>
     <a href="https://github.com/jang-yiseon">
@@ -123,7 +122,7 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       Retriever 배포<br/>
-      EC2 환경세팅
+      EC2, RDS
       </p>
     </div>
     <a href="https://github.com/whskadnd">
@@ -208,38 +207,61 @@
 
 ### 1️⃣ 데이터 파이프라인 (Processing)
 
-1. **상담 데이터 수집**: JSON 형식의 상담 내역 수집 및 전처리
-2. **청킹 및 메타데이터**: 효율적 검색을 위한 발화 단위 분할 및 정리
+1. **상담 데이터 수집**: JSON 형식의 상담 내역 수집 및 전처리, **클리닝 추가**
+2. **청킹 및 메타데이터**: 기존 발화 단위 대화에서 상담자와의 대화로 청킹 구조 개선
 3. **벡터 DB 저장**: ChromaDB에 임베딩 데이터 인덱싱
 
 ### 2️⃣ 답변 생성 프로세스 (Inference)
 
-4. **유사 사례 검색**: 사용자 질문과 가장 유사한 과거 상담 사례 검색
-5. **LLM 응답 생성**: 검색된 컨텍스트를 활용한 맞춤형 답변 생성
-6. **이력 관리**: 대화 기록 및 위험도 분석 결과 SQLite 저장
+1. **라우터**: 의도 분류를 통해 답변에 rag로직이 필요유무 점검
+2. **유사 사례 검색**: 사용자 질문과 가장 유사한 과거 상담 사례 검색
+3. **LLM 응답 생성**: 검색된 컨텍스트를 활용한 맞춤형 답변 생성
+4. **이력 관리**: 대화 기록 및 위험도 분석 결과 DB 저장
 
 <br>
 
+```python
+    ┌──────────────────────────────────────────────────────────┐
+    │                                                          │
+    │   [START] → [classify_intent]                            │
+    │                    │                                     │
+    │         ┌─────────┴─────────┐                            │
+    │         ↓                   ↓                            │
+    │   needs_rag=False     needs_rag=True                     │
+    │         │                   │                            │
+    │         ↓                   ↓                            │
+    │   [direct_respond]    [rewrite] → [retrieve] → [answer]  │
+    │         │                                          │     │
+    │         └──────────────────┬───────────────────────┘     │
+    │                            ↓                             │
+    │                          [END]                           │
+    │                                                          │
+    └──────────────────────────────────────────────────────────┘
+```
+**LangGraph 처리 구조**
+
+</br>
+
 ```mermaid
 sequenceDiagram
-  participant U as 사용자
-  participant API as Flask API
-  participant DB as SQLite
-  participant RAG as RAG Chain
-  participant VDB as ChromaDB
-  participant LLM as OpenAI
+    participant Client as 프론트엔드
+    participant Flask as Flask Server
+    participant RAG as LangGraphRAG
+    participant LLM as LLM Model
 
-  U->>API: 메시지 전송
-  API->>DB: 메시지 저장 (chat_messages)
-  API->>RAG: 질의 전달
-  RAG->>VDB: 유사 상담 검색
-  VDB-->>RAG: 관련 단락 반환
-  RAG->>LLM: 컨텍스트 + 질문
-  LLM-->>RAG: 응답 생성
-  RAG-->>API: 응답 반환
-  API->>DB: 응답 저장
-  API-->>U: 응답 표시
+    Client->>Flask: POST /api/chat/stream
+    Flask->>RAG: stream(user_id, session_id, query)
+    
+    loop 토큰 단위 스트리밍
+        RAG->>LLM: generate chunk
+        LLM-->>RAG: token
+        RAG-->>Flask: yield chunk
+        Flask-->>Client: SSE: data: {"text": "..."}
+    end
+    
+    Flask-->>Client: SSE: data: [DONE]
 ```
+**Flask 비동기 스트리밍 구조**
 
 <br>
 
@@ -267,7 +289,6 @@ sequenceDiagram
 ### ⚙️ Dev Environment
 
 ![venv](https://img.shields.io/badge/venv-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Anti-Gravity](https://img.shields.io/badge/Anti--Gravity-FF69B4?style=for-the-badge&logo=python&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 ![VS Code](https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)
 
@@ -282,7 +303,7 @@ sequenceDiagram
 </div>
 
 ```plaintext
-SKN21-3rd-3Team/
+SKN21-4th-3Team/
 ├── data/
 │   └── raw/                       # 원본 심리상담 데이터(json)
 |
@@ -301,7 +322,7 @@ SKN21-3rd-3Team/
 │   |    ├── rewrite.py            # 대화 히스토리 기반 쿼리 재작성
 │   |    ├── retriever.py          # 유사 상담 사례 검색
 │   |    ├── answer.py             # 답변 생성 및 후처리
-│   |    └── chain.py              # RAG 전체 흐름 제어
+│   |    └── langgraph_rag.py      # Rag 전체 흐름 제어
 |   |
 │   └── utils/                     # 공통 유틸리티 함수
 │        └── pdf_exporter.py       # 대화 기록 기반 PDF 리포트 생성 및 변환
@@ -310,6 +331,7 @@ SKN21-3rd-3Team/
 │    ├── main.py                    # Flask 엔트리포인트
 │    ├── templates/                 # HTML 템플릿
 │    └── static/                    # 정적 파일
+├── run.py                         # 실행 파일
 |
 ├── config/                        # 설정 파일
 ├── docs/                          # 산출물, 설계 문서 및 가이드
