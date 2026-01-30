@@ -22,13 +22,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize theme and color
     initTheme();
     initColorTheme();
-    
+
     // Load recent chats from database
     loadRecentChats();
-    
+
     // 페이지 로드 시 새 세션 자동 시작 (이전 세션 히스토리 간섭 방지)
     initNewSession();
-    
+
     /**
      * Initialize a fresh session on page load
      */
@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadRecentChats() {
         const container = document.getElementById('recent-chats-container');
         if (!container) return;
-        
+
         try {
             const response = await fetch('/api/recent-chats');
             const data = await response.json();
-            
+
             if (data.success && data.chats && data.chats.length > 0) {
                 container.innerHTML = data.chats.map(chat => `
                     <div class="chat-item" data-session-id="${chat.id}">
@@ -93,16 +93,16 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
         }
     }
-    
+
     // Simple HTML escape for chat titles
     function escapeHtmlSimple(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     // Click event for recent chat items and delete buttons
-    document.addEventListener('click', async function(e) {
+    document.addEventListener('click', async function (e) {
         // Handle delete button click
         const deleteBtn = e.target.closest('.chat-delete-btn');
         if (deleteBtn) {
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
             await deleteChatSession(sessionId);
             return;
         }
-        
+
         // Handle chat item click (for switching sessions)
         const chatItem = e.target.closest('.chat-item[data-session-id]');
         if (chatItem && !e.target.closest('.chat-delete-btn')) {
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
             await switchToSession(sessionId);
         }
     });
-    
+
     /**
      * Delete a chat session
      */
@@ -128,15 +128,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!confirm('이 대화를 삭제하시겠습니까?\n삭제된 대화는 복구할 수 없습니다.')) {
             return;
         }
-        
+
         try {
             const response = await fetch(`/api/delete-session/${sessionId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 showToast('대화가 삭제되었습니다');
                 // Refresh recent chats list
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast('대화 삭제 중 오류가 발생했습니다');
         }
     }
-    
+
     /**
      * Switch to a previous chat session and load its history
      */
@@ -161,42 +161,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ session_id: parseInt(sessionId) })
             });
-            
+
             const switchData = await switchResponse.json();
             if (!switchData.success) {
                 showToast('세션 전환 실패: ' + (switchData.message || '알 수 없는 오류'));
                 return;
             }
-            
+
             // 2. Load the chat history
             const historyResponse = await fetch(`/api/chat-history/${sessionId}`);
             const historyData = await historyResponse.json();
-            
+
             if (!historyData.success) {
                 showToast('채팅 기록 로드 실패');
                 return;
             }
-            
+
             // 3. Clear current messages and load history
             const chatMessagesEl = document.getElementById('chat-messages');
             if (!chatMessagesEl) return;
-            
+
             // Keep only the welcome message or clear all
             chatMessagesEl.innerHTML = '';
-            
+
             // Add welcome message
             chatMessagesEl.innerHTML = `
                 <div class="message bot-message">
                     <div class="message-avatar"><img src="/static/images/icon.jpg" alt="Bot"></div>
                     <div class="message-content">
                         <div class="message-bubble">
-                            <p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
-                            <p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
+<p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
+<p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
                         </div>
                     </div>
                 </div>
             `;
-            
+
             // Add historical messages
             historyData.messages.forEach(msg => {
                 const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString('ko-KR', {
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     minute: '2-digit',
                     hour12: true
                 }) : '';
-                
+
                 if (msg.role === 'user') {
                     chatMessagesEl.innerHTML += `
                         <div class="message user-message">
@@ -230,15 +230,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     `;
                 }
             });
-            
+
             // Scroll to bottom
             chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-            
+
             // Show chat view if in survey mode
             if (typeof showChatView === 'function') {
                 showChatView();
             }
-            
+
             // Highlight selected chat item
             document.querySelectorAll('.chat-item[data-session-id]').forEach(item => {
                 item.classList.remove('active');
@@ -247,21 +247,21 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectedItem) {
                 selectedItem.classList.add('active');
             }
-            
+
             showToast('이전 대화를 불러왔습니다');
-            
+
         } catch (error) {
             console.error('세션 전환 중 오류:', error);
             showToast('세션 전환 중 오류가 발생했습니다');
         }
     }
-    
+
     // New chat button handler
     const newChatBtn = document.getElementById('new-chat-btn');
     if (newChatBtn) {
         newChatBtn.addEventListener('click', startNewChat);
     }
-    
+
     /**
      * Start a new chat session
      */
@@ -272,9 +272,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
-            
+
             const data = await response.json();
-            
+
             // Clear chat messages UI
             const chatMessagesEl = document.getElementById('chat-messages');
             if (chatMessagesEl) {
@@ -283,35 +283,35 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="message-avatar"><img src="/static/images/icon.jpg" alt="Bot"></div>
                         <div class="message-content">
                             <div class="message-bubble">
-                                <p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
-                                <p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
+<p>안녕하세요! 저는 심리 상담을 도와드리는 AI 도우미입니다. 😊</p>
+<p>오늘 어떤 이야기를 나누고 싶으신가요? 편하게 말씀해 주세요.</p>
                             </div>
                         </div>
                     </div>
                 `;
             }
-            
+
             // Show chat view if in survey mode
             if (typeof showChatView === 'function') {
                 showChatView();
             }
-            
+
             // Remove active state from recent chat items
             document.querySelectorAll('.chat-item[data-session-id]').forEach(item => {
                 item.classList.remove('active');
             });
-            
+
             // Focus on input
             const messageInput = document.getElementById('message-input');
             if (messageInput) {
                 messageInput.focus();
             }
-            
+
             showToast('새 대화가 시작되었습니다');
-            
+
             // Refresh recent chats list
             loadRecentChats();
-            
+
         } catch (error) {
             console.error('새 대화 시작 중 오류:', error);
             showToast('새 대화 시작 중 오류가 발생했습니다');
@@ -326,16 +326,16 @@ document.addEventListener('DOMContentLoaded', function () {
             sendMessage();
         }
     });
-    
+
     // Textarea auto-resize
     messageInput.addEventListener('input', function () {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 150) + 'px';
     });
-    
+
     // Reset height after sending message
     const originalSendMessage = sendMessage;
-    sendMessage = async function() {
+    sendMessage = async function () {
         await originalSendMessage();
         messageInput.style.height = 'auto';
     };
@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /**
-     * Send user message and get bot response (with streaming)
+     * Send user message and get bot response (with streaming or debug mode)
      */
     async function sendMessage() {
         const text = messageInput.value.trim();
@@ -458,18 +458,20 @@ document.addEventListener('DOMContentLoaded', function () {
         addMessage(text, 'user');
         messageInput.value = '';
 
-        // Create bot message placeholder for streaming
+        // Check debug mode (Ctrl+D to toggle)
+        const debugMode = window.RAG_DEBUG_MODE || false;
+
         const botMessageId = 'streaming-msg-' + Date.now();
         createStreamingBotMessage(botMessageId);
 
         try {
-            // Call streaming API
+            // Call streaming API (Unified for both debug and normal modes)
             const response = await fetch('/api/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text, debug: debugMode })
             });
 
             if (!response.ok) {
@@ -493,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const data = line.slice(6);
-                        
+
                         if (data === '[DONE]') {
                             // Streaming complete
                             finalizeStreamingMessage(botMessageId);
@@ -502,9 +504,64 @@ document.addEventListener('DOMContentLoaded', function () {
                             updateStreamingMessage(botMessageId, data.slice(7).trim());
                             finalizeStreamingMessage(botMessageId);
                         } else {
-                            // Append character
-                            fullText += data;
-                            updateStreamingMessage(botMessageId, fullText);
+                            // Handle Dictionary (Debug info or Content) or String
+                            try {
+                                const parsed = JSON.parse(data);
+
+                                // Case 1: Debug Info Event
+                                if (parsed.type === 'debug') {
+                                    const debugInfo = parsed.data;
+                                    console.log('🔍 [RAG DEBUG]', debugInfo);
+
+                                    // Add debug panel
+                                    const intentBadge = debugInfo.intent ? `<span style="background: #89b4fa; color: #1e1e2e; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${debugInfo.intent}</span>` : '';
+                                    const noteMsg = debugInfo.note ? `<div style="background: #a6e3a1; color: #1e1e2e; padding: 8px; border-radius: 4px; margin-bottom: 8px;">${debugInfo.note}</div>` : '';
+                                    const sourcesSection = debugInfo.sources && debugInfo.sources.length > 0
+                                        ? `<div style="font-weight: bold; margin-bottom: 4px;">📚 Retrieved Sources (Top 5):</div>
+                                           ${debugInfo.sources.map(src => `
+                                               <div style="background: #313244; padding: 8px; margin: 4px 0; border-radius: 4px;">
+                                                   <div style="color: #89b4fa;">[${src.rank}] Session: ${src.session_id} | Category: ${src.category || 'N/A'} | Turn: ${src.turn_idx || 'N/A'} | Dist: ${src.distance}</div>
+                                                   <div style="color: #a6adc8; font-size: 11px; margin-top: 4px; white-space: pre-wrap;">${escapeHtml(src.content || '(no content)')}</div>
+                                               </div>
+                                           `).join('')}`
+                                        : `<div style="color: #a6adc8;">📚 RAG 검색 없음 (직접 응답)</div>`;
+
+                                    const debugHTML = `
+                                        <div class="debug-panel" style="background: #1e1e2e; color: #cdd6f4; padding: 12px; margin: 8px 0 8px 50px; border-radius: 8px; font-family: monospace; font-size: 12px; border-left: 3px solid #f5c211;">
+                                            <div style="margin-bottom: 8px; font-weight: bold; color: #f5c211;">📊 RAG Debug Info${intentBadge}</div>
+                                            ${noteMsg}
+                                            <div style="margin-bottom: 4px;"><strong>Rewritten Query:</strong> ${escapeHtml(debugInfo.rewritten_query || 'N/A')}</div>
+                                            <div style="margin-bottom: 8px;"><strong>Context Length:</strong> ${debugInfo.context_length || 0} chars</div>
+                                            ${sourcesSection}
+                                        </div>
+                                    `;
+                                    // Insert AFTER the bot message (which is currently streaming)
+                                    // Note: This puts it below the typing bubble.
+                                    chatMessages.insertAdjacentHTML('beforeend', debugHTML);
+                                    scrollToBottom();
+                                    continue;
+                                }
+
+                                // Case 2: Content Chunk
+                                let content = '';
+                                if (parsed.type === 'content') {
+                                    content = parsed.data;
+                                } else if (parsed.text !== undefined) {
+                                    // Legacy format
+                                    content = parsed.text;
+                                } else {
+                                    // Fallback
+                                    content = data;
+                                }
+
+                                fullText += content;
+                                updateStreamingMessage(botMessageId, fullText);
+
+                            } catch (e) {
+                                // Not JSON, treat as raw text
+                                fullText += data;
+                                updateStreamingMessage(botMessageId, fullText);
+                            }
                         }
                     }
                 }
@@ -516,6 +573,17 @@ document.addEventListener('DOMContentLoaded', function () {
             finalizeStreamingMessage(botMessageId);
         }
     }
+
+    // Debug mode toggle (Ctrl+D)
+    window.RAG_DEBUG_MODE = false;
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            window.RAG_DEBUG_MODE = !window.RAG_DEBUG_MODE;
+            showToast(window.RAG_DEBUG_MODE ? '🔍 디버그 모드 ON' : '✨ 일반 모드');
+            console.log('RAG Debug Mode:', window.RAG_DEBUG_MODE);
+        }
+    });
 
     /**
      * Create a placeholder bot message for streaming
@@ -570,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add message actions
             const contentEl = messageEl.querySelector('.message-content');
             const timeEl = messageEl.querySelector('.message-time');
-            
+
             const actionsHTML = `
                 <div class="message-actions">
                     <button class="msg-action" title="복사">
@@ -595,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </button>
                 </div>
             `;
-            
+
             if (contentEl && timeEl) {
                 contentEl.insertBefore(
                     document.createRange().createContextualFragment(actionsHTML),
@@ -840,7 +908,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ========================================
     // Chat Search Functionality
     // ========================================
-    
+
     const searchToggle = document.getElementById('search-toggle');
     const searchOverlay = document.getElementById('search-overlay');
     const searchInput = document.getElementById('search-input');
@@ -850,42 +918,42 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchPrev = document.getElementById('search-prev');
     const searchNext = document.getElementById('search-next');
     const searchResultCount = document.getElementById('search-result-count');
-    
+
     let searchResultItems = [];
     let currentSearchIndex = 0;
-    
+
     // Open search overlay
     if (searchToggle) {
         searchToggle.addEventListener('click', openSearch);
     }
-    
+
     // Close search overlay
     if (searchClose) {
         searchClose.addEventListener('click', closeSearch);
     }
-    
+
     // Click outside to close
     if (searchOverlay) {
-        searchOverlay.addEventListener('click', function(e) {
+        searchOverlay.addEventListener('click', function (e) {
             if (e.target === searchOverlay) {
                 closeSearch();
             }
         });
     }
-    
+
     // Clear search input
     if (searchClear) {
-        searchClear.addEventListener('click', function() {
+        searchClear.addEventListener('click', function () {
             searchInput.value = '';
             searchClear.classList.remove('visible');
             resetSearch();
             searchInput.focus();
         });
     }
-    
+
     // Search input handling
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             const query = searchInput.value.trim();
             if (query.length > 0) {
                 searchClear.classList.add('visible');
@@ -895,9 +963,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 resetSearch();
             }
         });
-        
+
         // Keyboard navigation
-        searchInput.addEventListener('keydown', function(e) {
+        searchInput.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 if (e.shiftKey) {
@@ -910,22 +978,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     // Navigation buttons
     if (searchPrev) {
-        searchPrev.addEventListener('click', function() {
+        searchPrev.addEventListener('click', function () {
             navigateSearch(-1);
         });
     }
-    
+
     if (searchNext) {
-        searchNext.addEventListener('click', function() {
+        searchNext.addEventListener('click', function () {
             navigateSearch(1);
         });
     }
-    
+
     // Keyboard shortcut (Ctrl+F / Cmd+F)
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             // Only intercept if chat view is visible
             const chatMessagesEl = document.getElementById('chat-messages');
@@ -935,14 +1003,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-    
+
     function openSearch() {
         if (searchOverlay) {
             searchOverlay.classList.add('active');
             searchInput.focus();
         }
     }
-    
+
     function closeSearch() {
         if (searchOverlay) {
             searchOverlay.classList.remove('active');
@@ -952,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', function () {
             clearHighlights();
         }
     }
-    
+
     function resetSearch() {
         searchResultItems = [];
         currentSearchIndex = 0;
@@ -964,20 +1032,20 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         `;
     }
-    
+
     function performSearch(query) {
         const chatMessagesEl = document.getElementById('chat-messages');
         if (!chatMessagesEl) return;
-        
+
         const messages = chatMessagesEl.querySelectorAll('.message');
         searchResultItems = [];
-        
+
         const lowerQuery = query.toLowerCase();
-        
+
         messages.forEach((message, index) => {
             const bubble = message.querySelector('.message-bubble');
             if (!bubble) return;
-            
+
             const text = bubble.innerText;
             if (text.toLowerCase().includes(lowerQuery)) {
                 const isUser = message.classList.contains('user-message');
@@ -989,16 +1057,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-        
+
         renderSearchResults(query);
         updateSearchNav();
         currentSearchIndex = 0;
-        
+
         if (searchResultItems.length > 0) {
             highlightCurrentResult();
         }
     }
-    
+
     function renderSearchResults(query) {
         if (searchResultItems.length === 0) {
             searchResults.innerHTML = `
@@ -1009,13 +1077,13 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             return;
         }
-        
+
         const resultsHTML = searchResultItems.map((item, idx) => {
             const highlightedText = highlightText(item.text, query);
             const role = item.isUser ? '나' : 'AI 상담사';
             const iconContent = item.isUser ? '👤' : '<img src="/static/images/icon.jpg" alt="Bot">';
             const iconClass = item.isUser ? 'user' : 'bot';
-            
+
             return `
                 <div class="search-result-item ${idx === currentSearchIndex ? 'active' : ''}" data-index="${idx}">
                     <div class="search-result-icon ${iconClass}">${iconContent}</div>
@@ -1026,29 +1094,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             `;
         }).join('');
-        
+
         searchResults.innerHTML = resultsHTML;
-        
+
         // Add click handlers
         searchResults.querySelectorAll('.search-result-item').forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function () {
                 const idx = parseInt(this.dataset.index);
                 const targetElement = searchResultItems[idx].element;
-                
+
                 // Close search overlay first
                 closeSearch();
-                
+
                 // Scroll to message and highlight after a brief delay
                 setTimeout(() => {
                     if (targetElement) {
                         targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
+
                         // Add highlight effect
                         targetElement.classList.add('search-found');
                         targetElement.style.outline = '3px solid var(--accent-primary)';
                         targetElement.style.outlineOffset = '6px';
                         targetElement.style.borderRadius = 'var(--radius-md)';
-                        
+
                         // Remove highlight after animation
                         setTimeout(() => {
                             targetElement.classList.remove('search-found');
@@ -1060,17 +1128,17 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
-    
+
     function highlightText(text, query) {
         const escaped = escapeHtml(text);
         const escapedQuery = escapeHtml(query);
         const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
         return escaped.replace(regex, '<mark>$1</mark>');
     }
-    
+
     function updateSearchNav() {
         const count = searchResultItems.length;
-        
+
         if (count > 0) {
             searchResultCount.textContent = `${currentSearchIndex + 1} / ${count}개 결과`;
             searchPrev.disabled = false;
@@ -1081,41 +1149,41 @@ document.addEventListener('DOMContentLoaded', function () {
             searchNext.disabled = true;
         }
     }
-    
+
     function navigateSearch(direction) {
         if (searchResultItems.length === 0) return;
-        
+
         currentSearchIndex += direction;
-        
+
         if (currentSearchIndex >= searchResultItems.length) {
             currentSearchIndex = 0;
         } else if (currentSearchIndex < 0) {
             currentSearchIndex = searchResultItems.length - 1;
         }
-        
+
         highlightCurrentResult();
         scrollToMessage(searchResultItems[currentSearchIndex].element);
         updateActiveResult();
         updateSearchNav();
     }
-    
+
     function updateActiveResult() {
         searchResults.querySelectorAll('.search-result-item').forEach((item, idx) => {
             item.classList.toggle('active', idx === currentSearchIndex);
         });
-        
+
         // Scroll active result into view in results panel
         const activeItem = searchResults.querySelector('.search-result-item.active');
         if (activeItem) {
             activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }
-    
+
     function highlightCurrentResult() {
         clearHighlights();
-        
+
         if (searchResultItems.length === 0) return;
-        
+
         const currentItem = searchResultItems[currentSearchIndex];
         if (currentItem && currentItem.element) {
             currentItem.element.classList.add('search-current');
@@ -1124,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentItem.element.style.borderRadius = 'var(--radius-md)';
         }
     }
-    
+
     function clearHighlights() {
         document.querySelectorAll('.message.search-current').forEach(el => {
             el.classList.remove('search-current');
@@ -1132,34 +1200,34 @@ document.addEventListener('DOMContentLoaded', function () {
             el.style.outlineOffset = '';
         });
     }
-    
+
     function scrollToMessage(element) {
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
-    
+
     // =========================================================================
     // PDF Download Feature
     // =========================================================================
-    
+
     const downloadPdfBtn = document.getElementById('download-pdf-btn');
-    
+
     if (downloadPdfBtn) {
-        downloadPdfBtn.addEventListener('click', async function() {
+        downloadPdfBtn.addEventListener('click', async function () {
             // Get current session ID from the page
             const sessionResponse = await fetch('/api/session');
             const sessionData = await sessionResponse.json();
-            
+
             if (!sessionData.logged_in) {
                 showToast('로그인이 필요합니다');
                 return;
             }
-            
+
             // Get active chat session ID
             const activeChat = document.querySelector('.chat-item.active');
             let sessionId = activeChat ? activeChat.dataset.sessionId : null;
-            
+
             // If no active chat selected, try to get current session
             if (!sessionId) {
                 // Use the first chat from recent chats or show error
@@ -1171,19 +1239,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
             }
-            
+
             try {
                 showToast('PDF 생성 중...');
-                
+
                 // Trigger download
                 const response = await fetch(`/api/export-pdf/${sessionId}`);
-                
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     showToast(errorData.message || 'PDF 다운로드 실패');
                     return;
                 }
-                
+
                 // Get filename from Content-Disposition header or use default
                 const contentDisposition = response.headers.get('Content-Disposition');
                 let filename = `상담기록_${sessionId}.pdf`;
@@ -1198,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                 }
-                
+
                 // Download the file
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -1209,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                
+
                 showToast('PDF 다운로드 완료!');
             } catch (error) {
                 console.error('PDF 다운로드 에러:', error);

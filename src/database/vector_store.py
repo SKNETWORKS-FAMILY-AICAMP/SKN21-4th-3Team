@@ -1,9 +1,9 @@
 """
 FileName    : vector_store.py
-Auth        : 박수빈
-Date        : 2026-01-03
+Auth        : 박수빈, 우재현
+Date        : 2026-01-28
 Description : ChromaDB 벡터 스토어 래퍼 클래스 - 상담 데이터 임베딩 및 유사도 검색
-Issue/Note  : OpenAI Embedding 사용, 메타데이터 필터링 지원
+Issue/Note  : OpenAI Embedding 사용, 메타데이터 필터링 지원, Pydantic Settings 적용
 """
 
 # -------------------------------------------------------------
@@ -19,8 +19,9 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from config.db_config import DatabaseConfig
-from config.model_config import OpenAIConfig
+from config.db_config import db_settings
+from config.model_config import model_settings
+import torch
 
 # -------------------------------------------------------------
 # Vector Store Class
@@ -40,21 +41,74 @@ class VectorStore:
         """
         VectorStore 초기화
         
+        우선순위:
+            1. DATABASE_URL이 설정된 경우 PostgreSQL 연결 확인
+            2. 연결 실패 시 로컬 ChromaDB 사용
+        
         Args:
             persist_directory: ChromaDB 저장 경로 (None이면 기본 경로 사용)
         """
         # 디렉토리 생성
-        DatabaseConfig.ensure_directories()
+        db_settings.ensure_directories()
         
+        # PostgreSQL 연결 상태 플래그
+        self._remote_available = False
+        
+        # DATABASE_URL이 설정된 경우 연결 확인 (추후 pgvector 마이그레이션 대비)
+        if db_settings.DATABASE_URL:
+            try:
+                from sqlalchemy import create_engine, text
+                print(f"[VectorStore] DATABASE_URL 연결 확인 중...")
+                engine = create_engine(db_settings.DATABASE_URL)
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                self._remote_available = True
+                print(f"[VectorStore] PostgreSQL 연결 성공!")
+            except Exception as e:
+                print(f"[VectorStore][WARN] PostgreSQL 연결 실패: {e}")
+                print(f"[VectorStore] 로컬 ChromaDB 사용")
+        else:
+            print(f"[VectorStore] DATABASE_URL 미설정 - 로컬 ChromaDB 사용")
+        
+        # 현재는 항상 ChromaDB 사용 (추후 pgvector 전환 시 분기 추가)
+        self._init_chromadb(persist_directory)
+    
+    def _init_chromadb(self, persist_directory: Optional[str] = None):
+        """
+        ChromaDB 클라이언트 초기화
+        
+        Args:
+            persist_directory: ChromaDB 저장 경로 (None이면 기본 경로 사용)
+        """
         # ChromaDB 클라이언트 초기화
-        persist_path = persist_directory or str(DatabaseConfig.CHROMA_DB_DIR)
+        persist_path = persist_directory or str(db_settings.CHROMA_DB_DIR)
         self.client = chromadb.PersistentClient(path=persist_path)
         
-        # 컬렉션 가져오기 또는 생성
-        self.collection = self.client.get_or_create_collection(
-            name=DatabaseConfig.CHROMA_COLLECTION_NAME,
-            metadata={"description": "심리 상담 데이터 임베딩 컬렉션"}
+        # [2026-01-28] GPU 가속을 위한 임베딩 함수 설정 (한국어 특화 모델)
+        from chromadb.utils import embedding_functions
+        
+        # [Debug] Explicit import check
+        try:
+            import sentence_transformers
+            print(f"[DEBUG] sentence_transformers imported successfully. Version: {sentence_transformers.__version__}")
+        except ImportError as e:
+            print(f"[ERROR] Failed to import sentence_transformers in VectorStore: {e}")
+            raise e
+
+        # device="cuda"로 설정 (PyTorch 2.10.0+cu128, RTX 5060 Blackwell 지원)
+        self.ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="jhgan/ko-sroberta-multitask",
+            device="cuda" if torch.cuda.is_available() else "cpu"
         )
+        
+        # 컬렉션 가져오기 또는 생성 (임베딩 함수 명시)
+        self.collection = self.client.get_or_create_collection(
+            name=db_settings.CHROMA_COLLECTION_NAME,
+            metadata={"description": "심리 상담 데이터 임베딩 컬렉션"},
+            embedding_function=self.ef
+        )
+        
+        print(f"[VectorStore] ChromaDB 초기화 완료: {persist_path}")
     
     # -------------------------------------------------------------
     # Document Management
@@ -231,9 +285,9 @@ class VectorStore:
         컬렉션의 모든 문서 삭제 (주의: 복구 불가)
         """
         # 컬렉션 삭제 후 재생성
-        self.client.delete_collection(DatabaseConfig.CHROMA_COLLECTION_NAME)
+        self.client.delete_collection(db_settings.CHROMA_COLLECTION_NAME)
         self.collection = self.client.get_or_create_collection(
-            name=DatabaseConfig.CHROMA_COLLECTION_NAME,
+            name=db_settings.CHROMA_COLLECTION_NAME,
             metadata={"description": "심리 상담 데이터 임베딩 컬렉션"}
         )
     
@@ -256,8 +310,9 @@ if __name__ == "__main__":
     
     # VectorStore 인스턴스 생성
     vector_store = VectorStore()
-    print(f"컬렉션 생성 완료: {DatabaseConfig.CHROMA_COLLECTION_NAME}")
+    print(f"컬렉션 생성 완료: {db_settings.CHROMA_COLLECTION_NAME}")
     print(f"현재 문서 수: {vector_store.get_document_count()}")
+
     
     # 테스트 문서 추가
     test_docs = [

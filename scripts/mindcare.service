@@ -1,0 +1,29 @@
+[Unit]
+Description=AI 상담 챗봇
+Documentation=https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN21-4th-3Team
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/SKN21-4th-3Team
+
+# 환경변수
+Environment="PATH=/home/ec2-user/SKN21-4th-3Team/venv/bin"
+EnvironmentFile=/home/ec2-user/SKN21-4th-3Team/.env
+
+# 실행 명령
+ExecStart=/home/ec2-user/SKN21-4th-3Team/venv/bin/python run.py --prod
+
+# 재시작 정책
+Restart=always
+RestartSec=5
+
+# 로깅
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mindcare
+
+[Install]
+WantedBy=multi-user.target

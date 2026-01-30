@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from config.db_config import DatabaseConfig
+
 from src.database.database_schema import (
     init_database, get_session, 
     User, ChatSession, ChatMessage, ExpertReferral

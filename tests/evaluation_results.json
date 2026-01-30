@@ -1,0 +1,10 @@
+{
+  "total_queries": 8,
+  "recall": {
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0
+  },
+  "mrr": 1.0
+}
