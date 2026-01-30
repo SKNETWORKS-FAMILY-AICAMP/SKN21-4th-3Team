@@ -728,50 +728,25 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 - 과도한 다양성 실험: lambda_mult=0.1 설정(다양성 90%) 시 결과 분산은 증가했으나, 상담 심리 문맥에서 요구되는 핵심 주제와의 일관성이 결여되어 실제 서비스 적용에는 부적합한 것으로 판단.
 
-### 4. 최종 Retriever 선정: Similarity Retriever
+### 4. 최종 Retriever 선정: Contextual Retriever
 
-Retriever 비교 실험 결과를 종합하여 최종 Retriever를 선정하였다.
+**결론:** 거리 기반 성능(DIST)은 기법 간 큰 차이가 없었지만, **상담 도메인 핵심인 문맥 유지/대화 연속성**에서 **Contextual Retriever가 가장 균형 잡힌 성능**을 보여 최종 채택.
 
-* Retriever 비교 실험 요약
+**평가 설정(요약)**
+- 대상: Dense(Similarity / MMR / Contextual / Hybrid), Sparse(BM25 / TF-IDF)
+- 지표
+  - Average DIST(Top-5, ↓)
+  - Session Consistency(↑): Top-K 결과 중 동일 세션 문서 비율
+  - Turn Continuity(Avg Turn Gap, ↓): 대화 흐름 연속성
 
-가. 목적  
-RAG 기반 심리상담 챗봇에서 사용 가능한 최종 Retriever를 선정하고자 함.  
-거리 기반(DIST)와 정상평가(문맥, 연속성)를 비교하여 판단하고자 함.
+**핵심 결과(요약)**
+- DIST: Similarity·MMR·Contextual·Hybrid 간 **수치가 거의 유사** → 거리 성능만으로 우열 판단 어려움
+- Session Consistency: **Contextual / Hybrid가 우수**, Similarity·MMR은 다수 세션 혼입으로 일관성 저하
+- Turn Continuity: **Contextual / Hybrid가 Turn Gap이 가장 낮아** 대화 연속성 우수
 
-나. 대상  
-- Dense Retriever: Similarity / MMR / Contextual / Hybrid(Similarity+Contextual)  
-- Sparse Retriever: BM25 / TF-IDF  
-  - BM25, TF-IDF는 수학적 정의가 달라 정상평가 지표만 활용함.
-
-다. 평가지표  
-- 거리 기반 평가  
-  - Average DIST (Top-5, ↓ 낮을수록 우수)
-- 정상평가 지표  
-  - Session Consistency (↑ 높을수록 우수)  
-    - Top-K 결과 중 동일 세션 문서 비율  
-  - Turn Continuity (Avg Turn Gap, ↓ 낮을수록 우수)  
-    - 대화 연속성 유지 정도
-
-라. 결과 요약  
-- DIST 평가 결과 (Dense Retriever)  
-  - Similarity, MMR, Contextual, Hybrid 간 DIST 수치는 거의 유사  
-  - Hybrid가 타 기법 대비 DIST 향상이 나타나지 않음  
-  - 거리 성능 단독 기준으로는 우열 판단이 어려움
-- 정상평가 – Session Consistency  
-  - Contextual, Hybrid가 가장 높은 Session Consistency를 기록  
-  - Similarity, MMR은 다수 세션 혼입으로 일관성 저하  
-  - BM25, TF-IDF는 키워드 기반 특성상 중간 이하 수준  
-  - 문맥 유지 측면에서는 Contextual / Hybrid가 명확히 우수
-- 정상평가 – Turn Continuity  
-  - Contextual, Hybrid가 가장 낮은 Turn Gap으로 대화 흐름 연속성 우수  
-  - Similarity, MMR은 turn 단절 현상  
-  - BM25는 전체 실험군 중 가장 불안정  
-  - 상담 도메인 특성상 Turn Continuity는 핵심 지표로 판단
-
-마. 결론  
-  - Contextual Retriever가 거리 기반 성능과 정상평가 지표 모두에서 가장 균형 잡힌 성능을 보임  
-  - Hybrid는 문맥 보존 성능은 우수하나, 본 데이터셋에서는 과도한 확장으로 DIST 측면 이점이 제한됨  
-  - 따라서 Contextual Retriever를 최종으로 선정하고자 함
+**선정 이유**
+- Hybrid는 문맥 보존은 우수하나, 본 데이터셋에서는 **과도한 확장 대비 DIST 이점이 제한적**
+- 따라서 **문맥·연속성·운영 균형**이 가장 좋은 **Contextual Retriever**를 최종 선정
 
 <br>
 
