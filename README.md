@@ -52,14 +52,9 @@
     <h3 style="margin: 10px 0 5px 0;">손현우</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-<<<<<<< HEAD
-      평가 데이터셋 구측<br/>
-      모델 테스팅 및 평가<br/>
-=======
       테스트 설계 <br/> 
       RAG 성능평가<br/> 
       평가 데이터셋 구축<br/>
->>>>>>> d0210dbcf9b5317725aa143229a3bf4f633a1ede
       README 작성
       </p>
     </div>
