@@ -52,8 +52,14 @@
     <h3 style="margin: 10px 0 5px 0;">손현우</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
+<<<<<<< HEAD
       평가 데이터셋 구측<br/>
       모델 테스팅 및 평가<br/>
+=======
+      테스트 설계 <br/> 
+      RAG 성능평가<br/> 
+      평가 데이터셋 구축<br/>
+>>>>>>> d0210dbcf9b5317725aa143229a3bf4f633a1ede
       README 작성
       </p>
     </div>
@@ -86,10 +92,9 @@
     <h3 style="margin: 10px 0 5px 0;">이성진</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      데이터 수집 <br/>
-      prompt 개선 <br/>
+      데이터 증강 <br/>
       Retriever 조합<br/>
-      RAG기준 설계
+      RAG 성능 개선
       </p>
     </div>
     <a href="https://github.com/krsjlee">
@@ -146,7 +151,7 @@
 
 <strong>심리 상담 데이터를 기반으로 한 RAG(검색 증강 생성) 구조의 심리 상담 챗봇 서비스</strong>
 
-- 기존 3차 프로젝트에 이어서 심리상담 챗봇을 더  업데이트와 계선을 강조하는쪽으로 챗봇 프로젝트를 이어나갔습니다.  https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN21-3rd-3Team
+- 지난 3차 프로젝트에 이어, 심리 상담 챗봇의 성능 업데이트와 지속적인 개선에 중점을 두고 프로젝트를 고도화했습니다.  https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN21-3rd-3Team
 
 ## 프로젝트 선정 이유
 
