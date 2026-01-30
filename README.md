@@ -732,6 +732,25 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 **한 줄 결론:** DIST(거리)만 보면 큰 차이가 없었지만, 상담 도메인 핵심인 **문맥 유지/대화 연속성**에서 **Contextual**이 가장 안정적이어서 최종 채택.
 
+<table align="center" width="100%">
+  <tr>
+    <td align="center">
+      <img src="images/DIST.png" width="260"/>
+    </td>
+    <td align="center">
+      <img src="images/Session_Consistency.pnmg" width="260"/>
+    </td>
+    <td align="center">
+      <img src="images/Turn_Continuity.png" width="260"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><b>DIST</b></td>
+    <td align="center"><b>Session Consistency</b></td>
+    <td align="center"><b>Turn Continuity</b></td>
+  </tr>
+</table>
+
 **실험 구성(발표용 요약)**
 - 비교 대상: Dense(Similarity / MMR / Contextual / Hybrid), Sparse(BM25 / TF-IDF)
 - 평가 지표
