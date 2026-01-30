@@ -716,19 +716,7 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 ---
 
-### 3. 알고리즘 비교 실험 결과
-
-<p align="center"> <img src="images/retriever comparison.png" width="600" /> </p>
-
-**Similarity vs MMR 실험 요약**
-
-- 지표 유사성: 동일 쿼리 및 top-k 조건에서 Similarity와 **MMR(real)**은 session_id 및 source_id 기준의 다양성 지표에서 유의미한 차이를 보이지 않음.
-
-- 가중치 영향도: lambda_mult=0.5 설정 시 MMR이 구조적으로 유사도 중심인 Similarity와 거의 동일한 결과를 반환함을 확인.
-
-- 과도한 다양성 실험: lambda_mult=0.1 설정(다양성 90%) 시 결과 분산은 증가했으나, 상담 심리 문맥에서 요구되는 핵심 주제와의 일관성이 결여되어 실제 서비스 적용에는 부적합한 것으로 판단.
-
-### 4. 최종 Retriever 선정: Contextual Retriever
+### 3. 최종 Retriever 선정: Contextual Retriever
 
 **한 줄 결론:** DIST(거리)만 보면 큰 차이가 없었지만, 상담 도메인 핵심인 **문맥 유지/대화 연속성**에서 **Contextual**이 가장 안정적이어서 최종 채택.
 
@@ -751,17 +739,38 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
   </tr>
 </table>
 
-**실험 구성(발표용 요약)**
-- 비교 대상: Dense(Similarity / MMR / Contextual / Hybrid), Sparse(BM25 / TF-IDF)
-- 평가 지표
-  - Average DIST (Top-5, ↓)
-  - Session Consistency (↑): Top-K 결과 중 동일 세션 문서 비율
-  - Turn Continuity (Avg Turn Gap, ↓): 대화 흐름 연속성
+#### 가. 결과(결론)
+- **Contextual Retriever**가 거리 기반 성능(DIST)과 정상평가 지표(문맥/연속성) 모두에서 **가장 균형 잡힌 성능**을 보임
+- **Hybrid**는 문맥 보존 성능은 우수하나, 본 데이터셋에서는 **과도한 확장 대비 DIST 측면 이점이 제한적**
+- 따라서 **Contextual Retriever를 최종 선정**
 
-**핵심 결과(포인트)**
-- **DIST:** Similarity·MMR·Contextual·Hybrid 간 수치가 거의 유사 → 거리 성능만으로 우열 판단 어려움
-- **문맥/연속성:** Contextual·Hybrid가 Session Consistency/Turn Continuity에서 가장 우수
-- **선정:** Hybrid는 확장(컨텍스트 증가) 대비 이점이 제한적 → **Contextual Retriever 최종 선정**
+#### 나. 대상
+- **Dense(DIST)**: Similarity / MMR / Contextual / Hybrid(Similarity+Contextual)
+- **Sparse**: BM25 / TF-IDF
+  - BM25, TF-IDF는 수학적 정의가 달라 **정상평가 지표만 활용**
+
+#### 다. 평가지표
+- **거리 기반 평가**
+  - Average DIST (Top-5, ↓ 낮을수록 우수)
+- **정상평가 지표**
+  - Session Consistency (↑ 높을수록 우수): Top-K 결과 중 동일 세션 문서 비율
+  - Turn Continuity (Avg Turn Gap, ↓ 낮을수록 우수): 대화 연속성 유지 정도
+
+#### 라. 결과 요약
+- **DIST 평가(Dense)**
+  - Similarity / MMR / Contextual / Hybrid 간 DIST 수치는 **거의 유사**
+  - Hybrid가 타 기법 대비 **DIST 향상이 뚜렷하지 않음**
+  - 거리 성능만으로는 **우열 판단이 어려움**
+- **정상평가 – Session Consistency**
+  - Contextual / Hybrid가 가장 높은 Session Consistency를 기록
+  - Similarity / MMR은 다수 세션 혼입으로 일관성 저하
+  - BM25 / TF-IDF는 키워드 기반 특성상 중간 이하 수준
+  - 문맥 유지 측면에서는 Contextual / Hybrid가 **명확히 우수**
+- **정상평가 – Turn Continuity**
+  - Contextual / Hybrid가 가장 낮은 Turn Gap으로 대화 흐름 연속성 우수
+  - Similarity / MMR은 turn 단절 현상
+  - BM25는 전체 실험군 중 가장 불안정
+  - 상담 도메인 특성상 Turn Continuity는 **핵심 지표**로 판단
 
 <br>
 
