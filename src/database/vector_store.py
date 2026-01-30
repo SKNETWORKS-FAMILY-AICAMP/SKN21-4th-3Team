@@ -41,12 +41,45 @@ class VectorStore:
         """
         VectorStore 초기화
         
+        우선순위:
+            1. DATABASE_URL이 설정된 경우 PostgreSQL 연결 확인
+            2. 연결 실패 시 로컬 ChromaDB 사용
+        
         Args:
             persist_directory: ChromaDB 저장 경로 (None이면 기본 경로 사용)
         """
         # 디렉토리 생성
         db_settings.ensure_directories()
         
+        # PostgreSQL 연결 상태 플래그
+        self._remote_available = False
+        
+        # DATABASE_URL이 설정된 경우 연결 확인 (추후 pgvector 마이그레이션 대비)
+        if db_settings.DATABASE_URL:
+            try:
+                from sqlalchemy import create_engine, text
+                print(f"[VectorStore] DATABASE_URL 연결 확인 중...")
+                engine = create_engine(db_settings.DATABASE_URL)
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                self._remote_available = True
+                print(f"[VectorStore] PostgreSQL 연결 성공!")
+            except Exception as e:
+                print(f"[VectorStore][WARN] PostgreSQL 연결 실패: {e}")
+                print(f"[VectorStore] 로컬 ChromaDB 사용")
+        else:
+            print(f"[VectorStore] DATABASE_URL 미설정 - 로컬 ChromaDB 사용")
+        
+        # 현재는 항상 ChromaDB 사용 (추후 pgvector 전환 시 분기 추가)
+        self._init_chromadb(persist_directory)
+    
+    def _init_chromadb(self, persist_directory: Optional[str] = None):
+        """
+        ChromaDB 클라이언트 초기화
+        
+        Args:
+            persist_directory: ChromaDB 저장 경로 (None이면 기본 경로 사용)
+        """
         # ChromaDB 클라이언트 초기화
         persist_path = persist_directory or str(db_settings.CHROMA_DB_DIR)
         self.client = chromadb.PersistentClient(path=persist_path)
@@ -74,6 +107,8 @@ class VectorStore:
             metadata={"description": "심리 상담 데이터 임베딩 컬렉션"},
             embedding_function=self.ef
         )
+        
+        print(f"[VectorStore] ChromaDB 초기화 완료: {persist_path}")
     
     # -------------------------------------------------------------
     # Document Management

@@ -21,7 +21,8 @@ from sqlalchemy import (
     DateTime, 
     Boolean, 
     ForeignKey,
-    JSON
+    JSON,
+    text
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.engine import Engine
@@ -167,21 +168,50 @@ def init_database(echo: bool = False) -> Engine:
     """
     데이터베이스 초기화 - 테이블 생성
     
+    우선순위:
+        1. DATABASE_URL이 설정된 경우 해당 DB에 연결 시도
+        2. 연결 실패 시 SQLite로 폴백
+    
     Args:
         echo: SQL 로그 출력 여부
     
     Returns:
         SQLAlchemy Engine 객체
     """
-    # 디렉토리 생성
+    # 디렉토리 생성 (SQLite 폴백용)
     db_settings.ensure_directories()
     
-    # 엔진 생성
+    engine = None
+    
+    # DATABASE_URL이 설정된 경우 우선 시도
+    if db_settings.DATABASE_URL:
+        try:
+            print(f"[DB] DATABASE_URL 연결 시도 중...")
+            engine = create_engine(db_settings.DATABASE_URL, echo=echo)
+            
+            # 연결 테스트 (실제로 연결되는지 확인)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            
+            print(f"[DB] DATABASE_URL 연결 성공!")
+            
+            # 테이블 생성
+            Base.metadata.create_all(engine)
+            return engine
+            
+        except Exception as e:
+            print(f"[DB][ERROR] DATABASE_URL 연결 실패: {e}")
+            print(f"[DB] SQLite로 폴백합니다...")
+            engine = None
+    
+    # SQLite 사용 (기본값 또는 폴백)
+    print(f"[DB] SQLite 연결 중: {db_settings.SQLITE_DB_PATH}")
     engine = create_engine(db_settings.get_sqlite_url(), echo=echo)
     
     # 테이블 생성
     Base.metadata.create_all(engine)
     
+    print(f"[DB] SQLite 연결 성공!")
     return engine
 
 

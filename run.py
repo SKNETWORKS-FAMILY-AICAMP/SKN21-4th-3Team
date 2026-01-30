@@ -56,8 +56,24 @@ def check_environment() -> bool:
     print(f"  OpenAI API: {'[OK] 설정됨' if app_settings.OPENAI_API_KEY else '[ERROR] 미설정'}")
     
     # DB 설정 출력
-    print(f"  SQLite DB: {db_settings.SQLITE_DB_PATH}")
-    print(f"  ChromaDB: {db_settings.CHROMA_DB_DIR}")
+    if db_settings.DATABASE_URL:
+        # DATABASE_URL이 설정된 경우 (PostgreSQL 등 외부 DB)
+        # URL에서 비밀번호 마스킹 처리
+        db_url = db_settings.DATABASE_URL
+        if "@" in db_url:
+            # postgresql://user:password@host:port/db 형식에서 password 마스킹
+            prefix = db_url.split("://")[0]  # postgresql
+            rest = db_url.split("://")[1]    # user:password@host:port/db
+            if ":" in rest.split("@")[0]:
+                user = rest.split(":")[0]
+                after_pass = rest.split("@")[1]
+                db_url = f"{prefix}://{user}:****@{after_pass}"
+        print(f"  Database: {db_url}")
+        print(f"  ChromaDB: {db_settings.CHROMA_DB_DIR}")
+    else:
+        # 로컬 SQLite 사용
+        print(f"  SQLite DB: {db_settings.SQLITE_DB_PATH}")
+        print(f"  ChromaDB: {db_settings.CHROMA_DB_DIR}")
     
     print("-" * 40)
     
