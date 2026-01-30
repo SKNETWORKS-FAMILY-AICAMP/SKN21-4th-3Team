@@ -35,7 +35,8 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
         <strong>대장</strong>  | 임베딩 설계 <br/>
-        UI 화면 구현
+        UI 화면 구현<br/>
+        UI 결합및 버그 수정<br/>
       </p>
     </div>
     <a href="https://github.com/sbpark2930-ui">
@@ -52,7 +53,9 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       테스트 설계 <br/> 
-      RAG 성능평가
+      RAG 성능평가<br/> 
+      평가 데이터셋 구측<br/>
+      README 작성
       </p>
     </div>
     <a href="https://github.com/kevinhwsohn-afk">
@@ -70,6 +73,7 @@
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       RAG 로직 설계/구현 <br/> 
       History-to-PDF 변환 <br/>
+      UI 결합및 버그 수정<br/>
       </p>
     </div>
     <a href="https://github.com/Wjaehyun">
@@ -86,7 +90,9 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       데이터 수집 <br/>
-      prompt 개선
+      prompt 개선 <br/>
+      Retriever 조합<br/>
+      RAG기준 설계
       </p>
     </div>
     <a href="https://github.com/krsjlee">
@@ -103,7 +109,8 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       데이터 전처리·청킹 <br/>
-      README 작성 
+      README 작성 <br/>
+      추가데이터 수집
       </p>
     </div>
     <a href="https://github.com/jang-yiseon">
@@ -121,6 +128,8 @@
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       Retriever 구현 <br/>
       prompt 개선, 테스트 <br/>
+      Retriever 배포<br/>
+      EC2 환경세팅
       </p>
     </div>
     <a href="https://github.com/whskadnd">
@@ -150,6 +159,8 @@
 - 자기 돌봄(Self-care)의 필요성: AI 기반 챗봇은 단순 질의응답을 넘어 사용자의 감정 상태를 인식하고 공감적 반응을 제공함으로써 현대인의 일상적 멘탈케어 도구로 주목받고 있습니다.
 
 - 데이터 기반의 신뢰성: 단순한 LLM의 생성을 넘어, 실제 상담 사례를 기반으로 더 안전하고 맥락에 맞는 응답을 제공하고자 합니다.
+
+- 기존 3차 프로젝트에 이어서 심리상담 챗봇을 더 계선과 업데이트를 강조하는쪽으로 프로젝트를 진행하였습니다.  https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN21-3rd-3Team
 
 <table align="center" width="100%">
   <!-- 이미지 행 -->
@@ -322,337 +333,7 @@ SKN21-3rd-3Team/
 
 <br>
 
-# 4️⃣ 수집 데이터 설명
-
-## 📊 데이터 개요
-
-- **데이터 출처**: [AI Hub 심리상담 데이터셋](https://www.aihub.or.kr/aihubdata/data/view.do?pageIndex=1&currMenu=115&topMenu=100&srchOptnCnd=OPTNCND001&srchDetailCnd=DETAILCND001&srchOrder=ORDER001&srchPagePer=20&srchDataRealmCode=REALM006&aihubDataSe=data&dataSetSn=71806)
-- **카테고리**: 우울(DEPRESSION), 불안(ANXIETY), 중독(ADDICTION), 일반(NORMAL)
-- **형식**: json(상담 원문 발화 및 라벨, 메타데이터 )
-- **구조**: 상담 세션 단위 → 발화(paragraph) 단위 분리
-
-<br>
-
-## 🧠 데이터 전처리 & 임베딩 개요
-
-- json 파일에서 `상담사 / 내담자` 발화를 기준으로 발화 단위 분리
-- json 파일에서 연령, 성별, 상담 카테고리, 심리 지표(우울·불안·중독 등) 추출
-- 발화 텍스트만 임베딩하여 ChromaDB(Vector DB)에 저장
-
-<br>
-
-## ⚠️ 윤리 및 안전 설계 개요
-
-- 심리상담 챗봇은 **의료·심리 진단 도구가 아님!**
-- 자해·자살 등 고위험 키워드 감지 시:
-  - 즉각적인 주의 안내 메시지 제공
-  - 전문 기관 또는 주변 도움을 권고하는 가이드 문구 출력
-- 모든 상담 데이터는 **익명화된 공개 데이터**만 사용
-
-<br>
-
-## Data & Baseline Setup
-
-- **데이터 구조**  
-  AI Hub 심리상담 데이터셋을 기반으로, 다수의 상담 대화 기록과 해당 대화에 대한 라벨 및 메타데이터가 JSON 형식으로 구성 됨.
-
-- **카테고리 구성**
-  - `DEPRESSION` (우울)
-  - `ANXIETY` (불안)
-  - `ADDICTION` (중독)
-  - `NORMAL` (일반)
-
-<br>
-
-## Data Preprocessing & Chunking 검증
-
-- **전처리 목적**  
-  비정형 상담 대화를 RAG 검색 및 응답 생성에 적합한 구조로 변환
-
-- **전처리 파이프라인**
-
-  1. json 파일 파싱 → 발화 단위 분리, 메타데이터 및 상담 요약 추출
-  2. 발화 단위 데이터와 메타데이터 통합
-  3. DB 저장용 구조로 변환
-
-  ### 🔹 `Chunking Strategy` — 발화 단위 분리
-
-  | 항목      | 설명                          |
-  | --------- | ----------------------------- |
-  | 분리 기준 | `상담사 :` / `내담자 :`       |
-  | 저장 단위 | 발화(sentence-level)          |
-  | 포함 정보 | 화자, 발화 내용, 세션 내 순서 |
-
-<br>
-
-## Data Preprocessing Strategy
-
-심리상담 대화 데이터를 RAG 검색 및 응답 생성에 적합한 형태로 변환하기 위해, 파일 매칭·텍스트 정규화·화자 분리를 포함한 전처리 절차를 적용.
-
-### Data Matching & Loading
-
-- File ID matching: 정규식 패턴 [DAXN]\d{3}을 기준으로 TXT(대화 원문)와 JSON(라벨/메타데이터) 파일을 매칭.
-- Encoding fallback: 한글 깨짐 방지를 위해 utf-8-sig → utf-8 → cp949 순서로 디코딩.
-
-### Text Normalization
-
-- RAG 검색 품질과 응답 생성을 안정화하기 위해, 데이터 내 특수 태그를 자연어 또는 일반화 토큰으로 정규화.
-  > @COUNSELOR → 상담사
-  > @NAME → 내담자
-  > @PLACE, @AGE 등 → [PLACE], [AGE] 형태로 일반화 토큰을 유지
-
-### Speaker Segmentation
-
-- 정규식(상담사|내담자) 기반으로 화자를 명확히 분리.
-- 여러 줄로 이어지는 발화는 하나의 턴(Turn)으로 병합하여 대화 흐름이 끊기지 않도록 처리.
-
-<br>
-
-## Chunking Strategy (Window Sliding)
-
-### Overview
-
-- 대화 맥락을 유지하면서 검색 단위를 과도하게 키우지 않기 위해, **현재 발화(Current Turn)**를 중심으로 이전(Pre-context) 및 다음(Post-context) 발화를 포함하는 방식으로 청크를 생성.
-  - Method: Window Sliding
-  - Center: Current Turn
-  - Context: Pre-context + Post-context (총 3턴 구성)
-- 예시:
-  - (Context-1) 상담사: 요즘 기분이 좀 어떠세요?
-  - (Current) 내담자: 계속 우울하고 잠도 잘 안 와요. (검색 중심)
-  - (Context+1) 상담사: 불면증 때문에 많이 힘드시겠네요.
-
-### Rationale
-
-- Context awareness: 상담 데이터는 단일 발화만으로 의미가 부족한 경우가 많아, 앞뒤 문맥 포함이 필요.
-- Retrieval quality: 상담사의 질문과 내담자의 응답이 함께 포함된 청크는 상황 정보가 풍부하여 유사 사례 검색에 유리.
-- Token efficiency: 전체 세션 단위 임베딩 대비, 3턴 윈도우는 정보 밀도를 유지하면서도 컨텍스트 길이(토큰) 측면에서 효율적임.
-
-<br>
-
-## Data Storage Strategy
-
-- 전처리 및 청킹 결과는 목적에 따라 관계형 저장소와 벡터 저장소로 분리하여 관리.
-- ChromaDB (vector_store): 청킹된 텍스트를 임베딩하여 벡터로 저장하며, category, speaker, session_id 등 메타데이터를 함께 저장해 필터 기반 검색을 지원.
-
-<br>
-
----
-
-<br>
-
-## 5️⃣ 데이터 베이스 테이블 설명
-
-### 데이터베이스 설계 개요 (ERD; Entity Relationship Diagram)
-
-```mermaid
-erDiagram
-    users ||--o{ chat_sessions : "has"
-    chat_sessions ||--o{ chat_messages : "contains"
-    chat_sessions ||--o| expert_referrals : "may have"
-    counseling_data ||--o{ counseling_paragraphs : "contains"
-
-    users {
-        int id PK
-        string username UK
-        string password_hash
-        string name
-        string gender
-        string birthdate
-        string phone
-        string address
-        string address_detail
-        datetime created_at
-        datetime last_login
-    }
-
-    chat_sessions {
-        int id PK
-        int user_id FK
-        datetime started_at
-        datetime ended_at
-        string status
-        json screening_result
-    }
-
-    chat_messages {
-        int id PK
-        int session_id FK
-        string role
-        text content
-        datetime created_at
-    }
-
-    expert_referrals {
-        int id PK
-        int session_id FK "Unique"
-        string severity_level
-        text recommended_action
-        datetime created_at
-    }
-
-    counseling_data {
-        int id PK
-        string source_id UK
-        string category
-        int severity
-        text summary
-        string source_file
-        json raw_metadata
-        datetime imported_at
-    }
-
-    counseling_paragraphs {
-        int id PK
-        int counseling_id FK
-        int paragraph_index
-        string speaker
-        text content
-        json labels
-        string vector_id
-    }
-```
-
-<br>
-
-## 테이블 설명
-
-### 1. `users` (사용자)
-
-| 컬럼           | 타입         | 설명                  |
-| -------------- | ------------ | --------------------- |
-| id             | INTEGER      | Primary Key           |
-| username       | VARCHAR(50)  | 아이디 (Unique)       |
-| password_hash  | VARCHAR(255) | Bcrypt 해시 비밀번호  |
-| name           | VARCHAR(50)  | 이름                  |
-| gender         | VARCHAR(10)  | 성별 (male/female)    |
-| birthdate      | VARCHAR(10)  | 생년월일 (YYYY-MM-DD) |
-| phone          | VARCHAR(20)  | 전화번호              |
-| address        | VARCHAR(255) | 기본 주소             |
-| address_detail | VARCHAR(255) | 상세 주소             |
-| created_at     | DATETIME     | 생성일시              |
-| last_login     | DATETIME     | 마지막 로그인         |
-
-<br>
-
-### 2. `chat_sessions` (채팅 세션)
-
-| 컬럼             | 타입        | 설명                               |
-| ---------------- | ----------- | ---------------------------------- |
-| id               | INTEGER     | Primary Key                        |
-| user_id          | INTEGER     | 사용자 FK                          |
-| started_at       | DATETIME    | 세션 시작 시간                     |
-| ended_at         | DATETIME    | 세션 종료 시간                     |
-| status           | VARCHAR(20) | 상태 (active, completed, referred) |
-| screening_result | JSON        | 증상 선별 결과                     |
-
-<br>
-
-### 3. `chat_messages` (채팅 메시지)
-
-| 컬럼       | 타입        | 설명                             |
-| ---------- | ----------- | -------------------------------- |
-| id         | INTEGER     | Primary Key                      |
-| session_id | INTEGER     | 세션 FK                          |
-| role       | VARCHAR(10) | 발화자 (user, assistant, system) |
-| content    | TEXT        | 메시지 내용                      |
-| created_at | DATETIME    | 생성일시                         |
-
-<br>
-
-### 4. `expert_referrals` (전문가 연결)
-
-| 컬럼               | 타입        | 설명                                    |
-| ------------------ | ----------- | --------------------------------------- |
-| id                 | INTEGER     | Primary Key                             |
-| session_id         | INTEGER     | 세션 FK (Unique)                        |
-| severity_level     | VARCHAR(20) | 심각도 (mild, moderate, severe, crisis) |
-| recommended_action | TEXT        | 권장 조치                               |
-| created_at         | DATETIME    | 생성일시                                |
-
-<br>
-
-### 5. `counseling_data` (상담 원본 데이터)
-
-| 컬럼         | 타입        | 설명                                           |
-| ------------ | ----------- | ---------------------------------------------- |
-| id           | INTEGER     | Primary Key                                    |
-| source_id    | VARCHAR(20) | 원본 ID (D012, X007 등) - Unique               |
-| category     | VARCHAR(20) | 카테고리 (DEPRESSION/ANXIETY/ADDICTION/NORMAL) |
-| severity     | INTEGER     | 심각도 (0-3)                                   |
-| summary      | TEXT        | 상담 요약                                      |
-| source_file  | VARCHAR     | 원본 파일 경로                                 |
-| raw_metadata | JSON        | 원본 메타데이터 (나이, 성별 등)                |
-| imported_at  | DATETIME    | 임포트 시간                                    |
-
-<br>
-
-### 6. `counseling_paragraphs` (상담 발화 데이터)
-
-| 컬럼            | 타입        | 설명                      |
-| --------------- | ----------- | ------------------------- |
-| id              | INTEGER     | Primary Key               |
-| counseling_id   | INTEGER     | counseling_data FK        |
-| paragraph_index | INTEGER     | 발화 순서                 |
-| speaker         | VARCHAR(10) | 화자 (상담사/내담자)      |
-| content         | TEXT        | 발화 내용                 |
-| labels          | JSON        | 심리학적 라벨 (40개 항목) |
-| vector_id       | VARCHAR     | ChromaDB 문서 ID          |
-
-<br>
-
-## 관계도 요약
-
-```
-users (1) ──── (N) chat_sessions (1) ──── (N) chat_messages
-                        │
-                        └──── (0..1) expert_referrals
-
-counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB (Vector)
-```
-
-- **users ↔ chat_sessions**: 1:N (한 사용자가 여러 채팅 세션 보유)
-- **chat_sessions ↔ chat_messages**: 1:N (한 세션에 여러 메시지)
-- **chat_sessions ↔ expert_referrals**: 1:0..1 (세션당 최대 1개의 전문가 연결)
-- **counseling_data ↔ counseling_paragraphs**: 1:N (한 상담 세션에 여러 발화)
-- **counseling_paragraphs ↔ ChromaDB**: 발화 내용이 임베딩되어 벡터로 저장
-
-<br>
-
-## Database (ChromaDB)
-
-- RAG을 위해 **ChromaDB(Vector Database)** 를 데이터베이스로 사용함.
-- ChromaDB는 텍스트 데이터를 임베딩 벡터로 저장하고, 벡터 간 유사도를 기반으로 관련 상담 발화를 검색하는 역할을 수행.
-- 관계형 데이터베이스의 테이블 대신, ChromaDB의 **Collection 구조를 논리적인 데이터 테이블 단위로 정리**함.
-
-<br>
-
-## ChromaDB Collection 구조
-
-| 구성 요소           | 설명                                                       |
-| ------------------- | ---------------------------------------------------------- |
-| id                  | 문서(발화) 단위의 고유 식별자                              |
-| document            | 상담 발화 원문                                             |
-| embedding           | 발화 텍스트의 임베딩 벡터                                  |
-| metadata.session_id | 상담 세션 식별자                                           |
-| metadata.category   | 심리 상태 분류 (DEPRESSION / ANXIETY / ADDICTION / NORMAL) |
-| metadata.speaker    | 발화 주체 (user / assistant)                               |
-| metadata.turn_index | 세션 내 발화 순서                                          |
-
-<br>
-
-## 데이터베이스 활용 방식
-
-- 상담 발화 텍스트를 전처리한 후 임베딩하여 ChromaDB에 저장함.
-- 저장된 벡터는 유사도 검색을 통해 RAG Retriever 단계에서 활용됨.
-- metadata 정보는 검색 결과 필터링 및 상담 맥락 유지를 위해 사용됨.
-
-<br>
-
----
-
-<br>
-
-# 6️⃣ Application의 주요 기능
+# 4️⃣  Application의 주요 기능
 
 ## 🖥️ UI & 핵심 기능 소개
 
