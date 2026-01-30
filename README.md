@@ -730,23 +730,19 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 ### 4. 최종 Retriever 선정: Contextual Retriever
 
-**결론:** 거리 기반 성능(DIST)은 기법 간 큰 차이가 없었지만, **상담 도메인 핵심인 문맥 유지/대화 연속성**에서 **Contextual Retriever가 가장 균형 잡힌 성능**을 보여 최종 채택.
+**한 줄 결론:** DIST(거리)만 보면 큰 차이가 없었지만, 상담 도메인 핵심인 **문맥 유지/대화 연속성**에서 **Contextual**이 가장 안정적이어서 최종 채택.
 
-**평가 설정(요약)**
-- 대상: Dense(Similarity / MMR / Contextual / Hybrid), Sparse(BM25 / TF-IDF)
-- 지표
-  - Average DIST(Top-5, ↓)
-  - Session Consistency(↑): Top-K 결과 중 동일 세션 문서 비율
-  - Turn Continuity(Avg Turn Gap, ↓): 대화 흐름 연속성
+**실험 구성(발표용 요약)**
+- 비교 대상: Dense(Similarity / MMR / Contextual / Hybrid), Sparse(BM25 / TF-IDF)
+- 평가 지표
+  - Average DIST (Top-5, ↓)
+  - Session Consistency (↑): Top-K 결과 중 동일 세션 문서 비율
+  - Turn Continuity (Avg Turn Gap, ↓): 대화 흐름 연속성
 
-**핵심 결과(요약)**
-- DIST: Similarity·MMR·Contextual·Hybrid 간 **수치가 거의 유사** → 거리 성능만으로 우열 판단 어려움
-- Session Consistency: **Contextual / Hybrid가 우수**, Similarity·MMR은 다수 세션 혼입으로 일관성 저하
-- Turn Continuity: **Contextual / Hybrid가 Turn Gap이 가장 낮아** 대화 연속성 우수
-
-**선정 이유**
-- Hybrid는 문맥 보존은 우수하나, 본 데이터셋에서는 **과도한 확장 대비 DIST 이점이 제한적**
-- 따라서 **문맥·연속성·운영 균형**이 가장 좋은 **Contextual Retriever**를 최종 선정
+**핵심 결과(포인트)**
+- **DIST:** Similarity·MMR·Contextual·Hybrid 간 수치가 거의 유사 → 거리 성능만으로 우열 판단 어려움
+- **문맥/연속성:** Contextual·Hybrid가 Session Consistency/Turn Continuity에서 가장 우수
+- **선정:** Hybrid는 확장(컨텍스트 증가) 대비 이점이 제한적 → **Contextual Retriever 최종 선정**
 
 <br>
 
