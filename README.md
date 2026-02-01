@@ -34,8 +34,8 @@
     <h3 style="margin: 10px 0 5px 0;">박수빈</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-        <strong>대장</strong>  | 임베딩 설계 <br/>
-        UI 화면 구현
+        <strong>대장</strong>  | 전처리, 임베드 <br/>
+        UI, RDS<br/>
       </p>
     </div>
     <a href="https://github.com/sbpark2930-ui">
@@ -52,7 +52,8 @@
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
       테스트 설계 <br/> 
-      RAG 성능평가
+      평가 데이터셋 구축<br/>
+      README 작성
       </p>
     </div>
     <a href="https://github.com/kevinhwsohn-afk">
@@ -68,8 +69,8 @@
     <h3 style="margin: 10px 0 5px 0;">우재현</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      RAG 로직 설계/구현 <br/> 
-      History-to-PDF 변환 <br/>
+      RAG 구조개선<br/>
+      백엔드 로직 수정<br/>
       </p>
     </div>
     <a href="https://github.com/Wjaehyun">
@@ -85,8 +86,9 @@
     <h3 style="margin: 10px 0 5px 0;">이성진</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      데이터 수집 <br/>
-      prompt 개선
+      데이터 증강 <br/>
+      Retriever 조합<br/>
+      RAG 성능 개선
       </p>
     </div>
     <a href="https://github.com/krsjlee">
@@ -102,8 +104,8 @@
     <h3 style="margin: 10px 0 5px 0;">장이선</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      데이터 전처리·청킹 <br/>
-      README 작성 
+      데이터 전처리 <br/>
+      데이터 임베딩<br/>
       </p>
     </div>
     <a href="https://github.com/jang-yiseon">
@@ -119,8 +121,8 @@
     <h3 style="margin: 10px 0 5px 0;">조남웅</h3>
     <div>
       <p style="margin: 0; font-size: 13px; line-height: 1.4;"> 
-      Retriever 구현 <br/>
-      prompt 개선, 테스트 <br/>
+      Retriever 배포<br/>
+      EC2, RDS
       </p>
     </div>
     <a href="https://github.com/whskadnd">
@@ -143,6 +145,8 @@
 
 <strong>심리 상담 데이터를 기반으로 한 RAG(검색 증강 생성) 구조의 심리 상담 챗봇 서비스</strong>
 
+- 지난 3차 프로젝트에 이어, 심리 상담 챗봇의 성능 업데이트와 지속적인 개선에 중점을 두고 프로젝트를 고도화했습니다.  https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN21-3rd-3Team
+
 ## 프로젝트 선정 이유
 
 - AI 정서 관리의 확산: 기술의 발전으로 정서적 지원 영역에서도 대화형 AI를 활용하려는 시도가 빠르게 확산되고 있습니다.
@@ -150,6 +154,7 @@
 - 자기 돌봄(Self-care)의 필요성: AI 기반 챗봇은 단순 질의응답을 넘어 사용자의 감정 상태를 인식하고 공감적 반응을 제공함으로써 현대인의 일상적 멘탈케어 도구로 주목받고 있습니다.
 
 - 데이터 기반의 신뢰성: 단순한 LLM의 생성을 넘어, 실제 상담 사례를 기반으로 더 안전하고 맥락에 맞는 응답을 제공하고자 합니다.
+
 
 <table align="center" width="100%">
   <!-- 이미지 행 -->
@@ -202,38 +207,62 @@
 
 ### 1️⃣ 데이터 파이프라인 (Processing)
 
-1. **상담 데이터 수집**: JSON 형식의 상담 내역 수집 및 전처리
-2. **청킹 및 메타데이터**: 효율적 검색을 위한 발화 단위 분할 및 정리
+1. **상담 데이터 수집**: JSON 형식의 상담 내역 수집 및 전처리, **클리닝 추가**
+2. **청킹 및 메타데이터**: 기존 발화 단위 대화에서 상담자와의 대화로 청킹 구조 개선
 3. **벡터 DB 저장**: ChromaDB에 임베딩 데이터 인덱싱
 
 ### 2️⃣ 답변 생성 프로세스 (Inference)
 
-4. **유사 사례 검색**: 사용자 질문과 가장 유사한 과거 상담 사례 검색
-5. **LLM 응답 생성**: 검색된 컨텍스트를 활용한 맞춤형 답변 생성
-6. **이력 관리**: 대화 기록 및 위험도 분석 결과 SQLite 저장
+1. **라우터**: 의도 분류를 통해 답변에 rag로직이 필요유무 점검
+2. **유사 사례 검색**: 사용자 질문과 가장 유사한 과거 상담 사례 검색
+3. **LLM 응답 생성**: 검색된 컨텍스트를 활용한 맞춤형 답변 생성
+4. **이력 관리**: 대화 기록 및 위험도 분석 결과 DB 저장
 
 <br>
 
+```python
+    ┌──────────────────────────────────────────────────────────┐
+    │                                                          │
+    │   [START] → [classify_intent]                            │
+    │                    │                                     │
+    │         ┌─────────┴─────────┐                            │
+    │         ↓                   ↓                            │
+    │   needs_rag=False     needs_rag=True                     │
+    │         │                   │                            │
+    │         ↓                   ↓                            │
+    │   [direct_respond]    [rewrite] → [retrieve] → [answer]  │
+    │         │                                          │     │
+    │         └──────────────────┬───────────────────────┘     │
+    │                            ↓                             │
+    │                          [END]                           │
+    │                                                          │
+    └──────────────────────────────────────────────────────────┘
+```
+**LangGraph 처리 구조**
+
+
+</br>
+
 ```mermaid
 sequenceDiagram
-  participant U as 사용자
-  participant API as Flask API
-  participant DB as SQLite
-  participant RAG as RAG Chain
-  participant VDB as ChromaDB
-  participant LLM as OpenAI
+    participant Client as 프론트엔드
+    participant Flask as Flask Server
+    participant RAG as LangGraphRAG
+    participant LLM as LLM Model
 
-  U->>API: 메시지 전송
-  API->>DB: 메시지 저장 (chat_messages)
-  API->>RAG: 질의 전달
-  RAG->>VDB: 유사 상담 검색
-  VDB-->>RAG: 관련 단락 반환
-  RAG->>LLM: 컨텍스트 + 질문
-  LLM-->>RAG: 응답 생성
-  RAG-->>API: 응답 반환
-  API->>DB: 응답 저장
-  API-->>U: 응답 표시
+    Client->>Flask: POST /api/chat/stream
+    Flask->>RAG: stream(user_id, session_id, query)
+    
+    loop 토큰 단위 스트리밍
+        RAG->>LLM: generate chunk
+        LLM-->>RAG: token
+        RAG-->>Flask: yield chunk
+        Flask-->>Client: SSE: data: {"text": "..."}
+    end
+    
+    Flask-->>Client: SSE: data: [DONE]
 ```
+**Flask 비동기 스트리밍 구조**
 
 <br>
 
@@ -261,7 +290,6 @@ sequenceDiagram
 ### ⚙️ Dev Environment
 
 ![venv](https://img.shields.io/badge/venv-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Anti-Gravity](https://img.shields.io/badge/Anti--Gravity-FF69B4?style=for-the-badge&logo=python&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 ![VS Code](https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)
 
@@ -276,7 +304,7 @@ sequenceDiagram
 </div>
 
 ```plaintext
-SKN21-3rd-3Team/
+SKN21-4th-3Team/
 ├── data/
 │   └── raw/                       # 원본 심리상담 데이터(json)
 |
@@ -295,7 +323,7 @@ SKN21-3rd-3Team/
 │   |    ├── rewrite.py            # 대화 히스토리 기반 쿼리 재작성
 │   |    ├── retriever.py          # 유사 상담 사례 검색
 │   |    ├── answer.py             # 답변 생성 및 후처리
-│   |    └── chain.py              # RAG 전체 흐름 제어
+│   |    └── langgraph_rag.py      # Rag 전체 흐름 제어
 |   |
 │   └── utils/                     # 공통 유틸리티 함수
 │        └── pdf_exporter.py       # 대화 기록 기반 PDF 리포트 생성 및 변환
@@ -304,6 +332,7 @@ SKN21-3rd-3Team/
 │    ├── main.py                    # Flask 엔트리포인트
 │    ├── templates/                 # HTML 템플릿
 │    └── static/                    # 정적 파일
+├── run.py                         # 실행 파일
 |
 ├── config/                        # 설정 파일
 ├── docs/                          # 산출물, 설계 문서 및 가이드
@@ -322,337 +351,7 @@ SKN21-3rd-3Team/
 
 <br>
 
-# 4️⃣ 수집 데이터 설명
-
-## 📊 데이터 개요
-
-- **데이터 출처**: [AI Hub 심리상담 데이터셋](https://www.aihub.or.kr/aihubdata/data/view.do?pageIndex=1&currMenu=115&topMenu=100&srchOptnCnd=OPTNCND001&srchDetailCnd=DETAILCND001&srchOrder=ORDER001&srchPagePer=20&srchDataRealmCode=REALM006&aihubDataSe=data&dataSetSn=71806)
-- **카테고리**: 우울(DEPRESSION), 불안(ANXIETY), 중독(ADDICTION), 일반(NORMAL)
-- **형식**: json(상담 원문 발화 및 라벨, 메타데이터 )
-- **구조**: 상담 세션 단위 → 발화(paragraph) 단위 분리
-
-<br>
-
-## 🧠 데이터 전처리 & 임베딩 개요
-
-- json 파일에서 `상담사 / 내담자` 발화를 기준으로 발화 단위 분리
-- json 파일에서 연령, 성별, 상담 카테고리, 심리 지표(우울·불안·중독 등) 추출
-- 발화 텍스트만 임베딩하여 ChromaDB(Vector DB)에 저장
-
-<br>
-
-## ⚠️ 윤리 및 안전 설계 개요
-
-- 심리상담 챗봇은 **의료·심리 진단 도구가 아님!**
-- 자해·자살 등 고위험 키워드 감지 시:
-  - 즉각적인 주의 안내 메시지 제공
-  - 전문 기관 또는 주변 도움을 권고하는 가이드 문구 출력
-- 모든 상담 데이터는 **익명화된 공개 데이터**만 사용
-
-<br>
-
-## Data & Baseline Setup
-
-- **데이터 구조**  
-  AI Hub 심리상담 데이터셋을 기반으로, 다수의 상담 대화 기록과 해당 대화에 대한 라벨 및 메타데이터가 JSON 형식으로 구성 됨.
-
-- **카테고리 구성**
-  - `DEPRESSION` (우울)
-  - `ANXIETY` (불안)
-  - `ADDICTION` (중독)
-  - `NORMAL` (일반)
-
-<br>
-
-## Data Preprocessing & Chunking 검증
-
-- **전처리 목적**  
-  비정형 상담 대화를 RAG 검색 및 응답 생성에 적합한 구조로 변환
-
-- **전처리 파이프라인**
-
-  1. json 파일 파싱 → 발화 단위 분리, 메타데이터 및 상담 요약 추출
-  2. 발화 단위 데이터와 메타데이터 통합
-  3. DB 저장용 구조로 변환
-
-  ### 🔹 `Chunking Strategy` — 발화 단위 분리
-
-  | 항목      | 설명                          |
-  | --------- | ----------------------------- |
-  | 분리 기준 | `상담사 :` / `내담자 :`       |
-  | 저장 단위 | 발화(sentence-level)          |
-  | 포함 정보 | 화자, 발화 내용, 세션 내 순서 |
-
-<br>
-
-## Data Preprocessing Strategy
-
-심리상담 대화 데이터를 RAG 검색 및 응답 생성에 적합한 형태로 변환하기 위해, 파일 매칭·텍스트 정규화·화자 분리를 포함한 전처리 절차를 적용.
-
-### Data Matching & Loading
-
-- File ID matching: 정규식 패턴 [DAXN]\d{3}을 기준으로 TXT(대화 원문)와 JSON(라벨/메타데이터) 파일을 매칭.
-- Encoding fallback: 한글 깨짐 방지를 위해 utf-8-sig → utf-8 → cp949 순서로 디코딩.
-
-### Text Normalization
-
-- RAG 검색 품질과 응답 생성을 안정화하기 위해, 데이터 내 특수 태그를 자연어 또는 일반화 토큰으로 정규화.
-  > @COUNSELOR → 상담사
-  > @NAME → 내담자
-  > @PLACE, @AGE 등 → [PLACE], [AGE] 형태로 일반화 토큰을 유지
-
-### Speaker Segmentation
-
-- 정규식(상담사|내담자) 기반으로 화자를 명확히 분리.
-- 여러 줄로 이어지는 발화는 하나의 턴(Turn)으로 병합하여 대화 흐름이 끊기지 않도록 처리.
-
-<br>
-
-## Chunking Strategy (Window Sliding)
-
-### Overview
-
-- 대화 맥락을 유지하면서 검색 단위를 과도하게 키우지 않기 위해, **현재 발화(Current Turn)**를 중심으로 이전(Pre-context) 및 다음(Post-context) 발화를 포함하는 방식으로 청크를 생성.
-  - Method: Window Sliding
-  - Center: Current Turn
-  - Context: Pre-context + Post-context (총 3턴 구성)
-- 예시:
-  - (Context-1) 상담사: 요즘 기분이 좀 어떠세요?
-  - (Current) 내담자: 계속 우울하고 잠도 잘 안 와요. (검색 중심)
-  - (Context+1) 상담사: 불면증 때문에 많이 힘드시겠네요.
-
-### Rationale
-
-- Context awareness: 상담 데이터는 단일 발화만으로 의미가 부족한 경우가 많아, 앞뒤 문맥 포함이 필요.
-- Retrieval quality: 상담사의 질문과 내담자의 응답이 함께 포함된 청크는 상황 정보가 풍부하여 유사 사례 검색에 유리.
-- Token efficiency: 전체 세션 단위 임베딩 대비, 3턴 윈도우는 정보 밀도를 유지하면서도 컨텍스트 길이(토큰) 측면에서 효율적임.
-
-<br>
-
-## Data Storage Strategy
-
-- 전처리 및 청킹 결과는 목적에 따라 관계형 저장소와 벡터 저장소로 분리하여 관리.
-- ChromaDB (vector_store): 청킹된 텍스트를 임베딩하여 벡터로 저장하며, category, speaker, session_id 등 메타데이터를 함께 저장해 필터 기반 검색을 지원.
-
-<br>
-
----
-
-<br>
-
-## 5️⃣ 데이터 베이스 테이블 설명
-
-### 데이터베이스 설계 개요 (ERD; Entity Relationship Diagram)
-
-```mermaid
-erDiagram
-    users ||--o{ chat_sessions : "has"
-    chat_sessions ||--o{ chat_messages : "contains"
-    chat_sessions ||--o| expert_referrals : "may have"
-    counseling_data ||--o{ counseling_paragraphs : "contains"
-
-    users {
-        int id PK
-        string username UK
-        string password_hash
-        string name
-        string gender
-        string birthdate
-        string phone
-        string address
-        string address_detail
-        datetime created_at
-        datetime last_login
-    }
-
-    chat_sessions {
-        int id PK
-        int user_id FK
-        datetime started_at
-        datetime ended_at
-        string status
-        json screening_result
-    }
-
-    chat_messages {
-        int id PK
-        int session_id FK
-        string role
-        text content
-        datetime created_at
-    }
-
-    expert_referrals {
-        int id PK
-        int session_id FK "Unique"
-        string severity_level
-        text recommended_action
-        datetime created_at
-    }
-
-    counseling_data {
-        int id PK
-        string source_id UK
-        string category
-        int severity
-        text summary
-        string source_file
-        json raw_metadata
-        datetime imported_at
-    }
-
-    counseling_paragraphs {
-        int id PK
-        int counseling_id FK
-        int paragraph_index
-        string speaker
-        text content
-        json labels
-        string vector_id
-    }
-```
-
-<br>
-
-## 테이블 설명
-
-### 1. `users` (사용자)
-
-| 컬럼           | 타입         | 설명                  |
-| -------------- | ------------ | --------------------- |
-| id             | INTEGER      | Primary Key           |
-| username       | VARCHAR(50)  | 아이디 (Unique)       |
-| password_hash  | VARCHAR(255) | Bcrypt 해시 비밀번호  |
-| name           | VARCHAR(50)  | 이름                  |
-| gender         | VARCHAR(10)  | 성별 (male/female)    |
-| birthdate      | VARCHAR(10)  | 생년월일 (YYYY-MM-DD) |
-| phone          | VARCHAR(20)  | 전화번호              |
-| address        | VARCHAR(255) | 기본 주소             |
-| address_detail | VARCHAR(255) | 상세 주소             |
-| created_at     | DATETIME     | 생성일시              |
-| last_login     | DATETIME     | 마지막 로그인         |
-
-<br>
-
-### 2. `chat_sessions` (채팅 세션)
-
-| 컬럼             | 타입        | 설명                               |
-| ---------------- | ----------- | ---------------------------------- |
-| id               | INTEGER     | Primary Key                        |
-| user_id          | INTEGER     | 사용자 FK                          |
-| started_at       | DATETIME    | 세션 시작 시간                     |
-| ended_at         | DATETIME    | 세션 종료 시간                     |
-| status           | VARCHAR(20) | 상태 (active, completed, referred) |
-| screening_result | JSON        | 증상 선별 결과                     |
-
-<br>
-
-### 3. `chat_messages` (채팅 메시지)
-
-| 컬럼       | 타입        | 설명                             |
-| ---------- | ----------- | -------------------------------- |
-| id         | INTEGER     | Primary Key                      |
-| session_id | INTEGER     | 세션 FK                          |
-| role       | VARCHAR(10) | 발화자 (user, assistant, system) |
-| content    | TEXT        | 메시지 내용                      |
-| created_at | DATETIME    | 생성일시                         |
-
-<br>
-
-### 4. `expert_referrals` (전문가 연결)
-
-| 컬럼               | 타입        | 설명                                    |
-| ------------------ | ----------- | --------------------------------------- |
-| id                 | INTEGER     | Primary Key                             |
-| session_id         | INTEGER     | 세션 FK (Unique)                        |
-| severity_level     | VARCHAR(20) | 심각도 (mild, moderate, severe, crisis) |
-| recommended_action | TEXT        | 권장 조치                               |
-| created_at         | DATETIME    | 생성일시                                |
-
-<br>
-
-### 5. `counseling_data` (상담 원본 데이터)
-
-| 컬럼         | 타입        | 설명                                           |
-| ------------ | ----------- | ---------------------------------------------- |
-| id           | INTEGER     | Primary Key                                    |
-| source_id    | VARCHAR(20) | 원본 ID (D012, X007 등) - Unique               |
-| category     | VARCHAR(20) | 카테고리 (DEPRESSION/ANXIETY/ADDICTION/NORMAL) |
-| severity     | INTEGER     | 심각도 (0-3)                                   |
-| summary      | TEXT        | 상담 요약                                      |
-| source_file  | VARCHAR     | 원본 파일 경로                                 |
-| raw_metadata | JSON        | 원본 메타데이터 (나이, 성별 등)                |
-| imported_at  | DATETIME    | 임포트 시간                                    |
-
-<br>
-
-### 6. `counseling_paragraphs` (상담 발화 데이터)
-
-| 컬럼            | 타입        | 설명                      |
-| --------------- | ----------- | ------------------------- |
-| id              | INTEGER     | Primary Key               |
-| counseling_id   | INTEGER     | counseling_data FK        |
-| paragraph_index | INTEGER     | 발화 순서                 |
-| speaker         | VARCHAR(10) | 화자 (상담사/내담자)      |
-| content         | TEXT        | 발화 내용                 |
-| labels          | JSON        | 심리학적 라벨 (40개 항목) |
-| vector_id       | VARCHAR     | ChromaDB 문서 ID          |
-
-<br>
-
-## 관계도 요약
-
-```
-users (1) ──── (N) chat_sessions (1) ──── (N) chat_messages
-                        │
-                        └──── (0..1) expert_referrals
-
-counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB (Vector)
-```
-
-- **users ↔ chat_sessions**: 1:N (한 사용자가 여러 채팅 세션 보유)
-- **chat_sessions ↔ chat_messages**: 1:N (한 세션에 여러 메시지)
-- **chat_sessions ↔ expert_referrals**: 1:0..1 (세션당 최대 1개의 전문가 연결)
-- **counseling_data ↔ counseling_paragraphs**: 1:N (한 상담 세션에 여러 발화)
-- **counseling_paragraphs ↔ ChromaDB**: 발화 내용이 임베딩되어 벡터로 저장
-
-<br>
-
-## Database (ChromaDB)
-
-- RAG을 위해 **ChromaDB(Vector Database)** 를 데이터베이스로 사용함.
-- ChromaDB는 텍스트 데이터를 임베딩 벡터로 저장하고, 벡터 간 유사도를 기반으로 관련 상담 발화를 검색하는 역할을 수행.
-- 관계형 데이터베이스의 테이블 대신, ChromaDB의 **Collection 구조를 논리적인 데이터 테이블 단위로 정리**함.
-
-<br>
-
-## ChromaDB Collection 구조
-
-| 구성 요소           | 설명                                                       |
-| ------------------- | ---------------------------------------------------------- |
-| id                  | 문서(발화) 단위의 고유 식별자                              |
-| document            | 상담 발화 원문                                             |
-| embedding           | 발화 텍스트의 임베딩 벡터                                  |
-| metadata.session_id | 상담 세션 식별자                                           |
-| metadata.category   | 심리 상태 분류 (DEPRESSION / ANXIETY / ADDICTION / NORMAL) |
-| metadata.speaker    | 발화 주체 (user / assistant)                               |
-| metadata.turn_index | 세션 내 발화 순서                                          |
-
-<br>
-
-## 데이터베이스 활용 방식
-
-- 상담 발화 텍스트를 전처리한 후 임베딩하여 ChromaDB에 저장함.
-- 저장된 벡터는 유사도 검색을 통해 RAG Retriever 단계에서 활용됨.
-- metadata 정보는 검색 결과 필터링 및 상담 맥락 유지를 위해 사용됨.
-
-<br>
-
----
-
-<br>
-
-# 6️⃣ Application의 주요 기능
+# 4️⃣  Application의 주요 기능
 
 ## 🖥️ UI & 핵심 기능 소개
 
@@ -681,131 +380,166 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 - 실시간 상담: RAG 엔진을 활용한 맥락 인지형 심리 상담 대화
 - 상담 리포트 발급: 상담 종료 후 대화 내용을 분석하여 PDF 결과 리포트 제공
 
-## ⚙️ 챗봇 동작 프로세스 (Pipeline)
+## ⚙️ 변경된 챗봇 동작 프로세스 (Pipeline)
+사용자의 발화가 입력되면 LangGraph 기반의 상태 관리 엔진이 의도를 분류하고, 최적의 노드(Node)를 순회하며 응답을 생성합니다.
 
-사용자의 발화가 입력되면 다음과 같은 단계를 거쳐 최적의 응답을 생성.
+### 1. Input & Intent Classification (의도 분류)
+- 사용자 메시지 수신 LLM을 통한 RAG 실행 여부 결정
 
-- Input: 사용자 메시지 수신 및 발화 의도 파악
-- Memory: SQLite DB를 활용한 대화 기록 및 세션 정보 로드
-- Retrieval: ChromaDB에서 유사 상담 사례 검색 (Similarity Search 적용)
-- Augmentation: 검색된 상담 맥락 + System Prompt(공감/위로 가이드) 결합
-- Generation: GPT-4o 모델을 통한 개인화된 상담 응답 생성
-- Safety Check: 정서 위험 신호 감지 시 안전 스크리닝 안내 로직 자동 활성화
+### 2. Adaptive Routing (동적 경로 선택)
+- Direct Path: 단순 인사나 일상 대화는 direct_respond 노드로 즉시 이동.
+- RAG Path: 심층 상담이 필요한 경우 rewrite 노드로 진입하여 쿼리 최적화 수행.
+
+### 3. Memory Management (상태 관리)
+- history를 통해 이전 대화 맥락(Session)을 그래프 상태에 로드.
+
+### 4. Retrieval & Augmentation (지식 검색 및 보강)
+- Query Rewrite: 사용자 질문을 검색에 최적화된 형태로 재작성.
+- context retriever: DB에서 유사 상담 사례 및 심리학적 지식 베이스 검색.
+- Prompt Augmentation: 검색된 페르소나와 상담 가이드를 결합하여 컨텍스트 생성.
+
+### 5. Generation & Streaming (응답 생성)
+- GPT-5-mini: 개인화된 공감/위로 답변 생성.
+- SSE Streaming: Flask 서버를 통해 토큰 단위로 실시간 사용자 전달.
+
+### 6. Safety & Closing (안전 스크리닝 및 종료)
+- Safety Check: 의도 분류 단계에서 감지된 위험 신호(CRISIS) 발생 시, 최우선적으로 안전 스크리닝 로직 활성화.
+- Session Summary: 대화 종료 시 CLOSING 노드를 통해 전체 세션 요약 및 상태 저장.
+
+
+### 기존 LCEL vs LangGraph 를 통한 변경 이유 요약
+
+| 항목 | LCEL (chain.py) | LangGraph (langgraph_rag.py) |
+|------|-----------------|------------------------------|
+| 구조 | 선형 파이프라인 | 그래프 기반 분기 |
+| 분기 처리 | if-else 로직 | 조건부 엣지 |
+| 상태 관리 | dict 전달 | TypedDict State |
+| 확장성 | 복잡해짐 | 노드 추가로 쉬움 |
 
 <br>
 
 ## 🧠 Retriever & RAG 실험전략
 
-### 🔍 Retriever 선정 및 기술 검증
+### 1. Retriever 선정 및 기술 검증
 
-사용자의 질문에 가장 적합한 상담 사례를 찾기 위해 Similarity 방식과 MMR(Maximum Marginal Relevance) 방식의 성능을 비교 분석.
+Retriever 선정 및 기술 검증
+사용자의 질문에 가장 적합한 상담 사례를 찾기 위해 Retriever 알고리즘 성능을 비교 분석.
 
-### 1. 검색 알고리즘 정의 및 특징
+검색 알고리즘 정의 및 특징
+| 구분                                   | 방식                    | 검색 특징                | 상담 적용 관점                                            |
+| ------------------------------------ | --------------------- | -------------------- | --------------------------------------------------- |
+| Similarity                       | 벡터 거리 기반 최상위 유사 문서 추출 | 의미적 유사도 중심 검색        | 한 내담자의 단일 상담 맥락을 깊이 있게 참조하여, 유사한 정서·상황을 정밀하게 반영 |
+| Contextual Retriever             | 질문 의도·대화 맥락 기반 문서 재정렬 | 대화 흐름 및 문맥 반영 검색     | 이전 대화 내용을 고려해 현재 상담 맥락에 가장 적합한 사례를 우선 참조        |
+| Hybrid (Similarity + Contextual) | 벡터 유사도 + 문맥 기반 결합 검색  | 의미 유사도와 맥락 적합성 동시 고려 | 내담자의 핵심 감정은 유지하면서도 상담 흐름에 맞는 응답 품질을 안정적으로 확보    |
+| TF-IDF                           | 단어 빈도 기반 가중치 계산       | 키워드 중심 정형 검색         | 특정 증상·행동·상담 용어 등 명시적 표현이 중요한 경우 빠르게 참조          |
+| BM25                             | TF-IDF 개선형 가중치 검색     | 키워드 중요도·문서 길이 보정     | 진단 기준, 체크리스트 등 구조화된 상담 문서 검색에 유리                |
+| MMR                              | 유사도와 다양성의 균형 최적화      | 유사도 + 다양성 복합 검색      | 여러 상담 사례에서 유사한 정서를 다양한 관점으로 제시하여 공감 폭 확장        |
 
-| 구분       | 방식                                 | 검색 특징                 | 상담 적용 관점                                        |
-| ---------- | ------------------------------------ | ------------------------- | ----------------------------------------------------- |
-| Similarity | 벡터 거리 기반 최상위 유사 문서 추출 | 유사도 중심 검색          | 한 내담자의 특정 상담 맥락을 깊이 있게 참조           |
-| MMR        | 유사도와 다양성의 균형 최적화        | 유사도 + 다양성 복합 검색 | 여러 상담 사례에서 유사한 슬픔의 양상을 다양하게 참조 |
+
 
 ### 2. 데이터 구조 기반 분석 지표
 
-- 실험 결과의 객관성을 확보하기 위해 다음 두 가지 지표를 기준으로 검색 결과의 다양성을 측정.
+- 데이터 구조 기반 분석 지표
+실험 결과의 객관성을 확보하기 위해 다음 두 가지 지표를 기준으로 검색 결과의 다양성을 측정.
 
-- source_id: 서로 다른 상담 사례 단위
-- session_id: 동일 사례 내의 회차별 상담 대화 단위
+- source_id: 동일 질문에 대해 다양한 상담 사례가 참조되었는지를 판단하는 지표
+- session_id: 하나의 사례에 과도하게 편중된 검색 결과가 발생하는지를 확인하기 위한 지표
 
 ---
 
-### 3. 알고리즘 비교 실험 결과
+### 3. 최종 Retriever 선정: Contextual Retriever
 
-<p align="center"> <img src="images/retriever comparison.png" width="600" /> </p>
+**한 줄 결론:** DIST(거리)만 보면 큰 차이가 없었지만, 상담 도메인 핵심인 **문맥 유지/대화 연속성**에서 **Contextual**이 가장 안정적이어서 최종 채택.
 
-**Similarity vs MMR 실험 요약**
+<table align="center" width="100%">
+  <tr>
+    <td align="center">
+      <img src="images/DIST.png" width="260"/>
+    </td>
+    <td align="center">
+      <img src="images/Session_Consistency.png" width="260"/>
+    </td>
+    <td align="center">
+      <img src="images/Turn_Continuity.png" width="260"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><b>DIST</b></td>
+    <td align="center"><b>Session Consistency</b></td>
+    <td align="center"><b>Turn Continuity</b></td>
+  </tr>
+</table>
 
-- 지표 유사성: 동일 쿼리 및 top-k 조건에서 Similarity와 **MMR(real)**은 session_id 및 source_id 기준의 다양성 지표에서 유의미한 차이를 보이지 않음.
+#### 가. 결과(결론)
+- **Contextual Retriever**가 거리 기반 성능(DIST)과 정상평가 지표(문맥/연속성) 모두에서 **가장 균형 잡힌 성능**을 보임
+- **Hybrid**는 문맥 보존 성능은 우수하나, 본 데이터셋에서는 **과도한 확장 대비 DIST 측면 이점이 제한적**
+- 따라서 **Contextual Retriever를 최종 선정**
 
-- 가중치 영향도: lambda_mult=0.5 설정 시 MMR이 구조적으로 유사도 중심인 Similarity와 거의 동일한 결과를 반환함을 확인.
+#### 나. 대상
+- **Dense(DIST)**: Similarity / MMR / Contextual / Hybrid(Similarity+Contextual)
+- **Sparse**: BM25 / TF-IDF
+  - BM25, TF-IDF는 수학적 정의가 달라 **정상평가 지표만 활용**
 
-- 과도한 다양성 실험: lambda_mult=0.1 설정(다양성 90%) 시 결과 분산은 증가했으나, 상담 심리 문맥에서 요구되는 핵심 주제와의 일관성이 결여되어 실제 서비스 적용에는 부적합한 것으로 판단.
+#### 다. 평가지표
+- **거리 기반 평가**
+  - Average DIST (Top-5, ↓ 낮을수록 우수)
+- **정상평가 지표**
+  - Session Consistency (↑ 높을수록 우수): Top-K 결과 중 동일 세션 문서 비율
+  - Turn Continuity (Avg Turn Gap, ↓ 낮을수록 우수): 대화 연속성 유지 정도
 
-### 4. 최종 Retriever 선정: Similarity Retriever
-
-실험 결과를 바탕으로 다음 세 가지 이유를 근거로 Similarity 방식을 최종 채택.
-
-- 문맥의 일관성: 상담 심리 서비스 특성상, 산만한 사례 나열보다는 특정 상담 맥락의 깊이 있는 이해가 고품질 응답 생성에 유리.
-
-- 해석 용이성: 검색 결과가 사용자 질문의 의도(Relevance)에 충실하여 AI 응답의 인과 관계가 명확.
-
-- 효율성: 복잡한 다양성 계산 과정 없이 실시간 상담 환경에서 안정적이고 빠른 검색 성능을 보장.
+#### 라. 결과 요약
+- **DIST 평가(Dense)**
+  - Similarity / MMR / Contextual / Hybrid 간 DIST 수치는 **거의 유사**
+  - Hybrid가 타 기법 대비 **DIST 향상이 뚜렷하지 않음**
+  - 거리 성능만으로는 **우열 판단이 어려움**
+- **정상평가 – Session Consistency**
+  - Contextual / Hybrid가 가장 높은 Session Consistency를 기록
+  - Similarity / MMR은 다수 세션 혼입으로 일관성 저하
+  - BM25 / TF-IDF는 키워드 기반 특성상 중간 이하 수준
+  - 문맥 유지 측면에서는 Contextual / Hybrid가 **명확히 우수**
+- **정상평가 – Turn Continuity**
+  - Contextual / Hybrid가 가장 낮은 Turn Gap으로 대화 흐름 연속성 우수
+  - Similarity / MMR은 turn 단절 현상
+  - BM25는 전체 실험군 중 가장 불안정
+  - 상담 도메인 특성상 Turn Continuity는 **핵심 지표**로 판단
 
 <br>
 
 ## 모델 선정 배경
 
-실시간 상담 서비스의 핵심인 **지연시간**과 **응답정확도**를 기준으로 모델을 비교하였으며 총 6개의 모델을 사용해서 진행하였다.
-특히 상담 서비스의 특성상 응답 지연은 내담자의 감정 몰입을 깨뜨리고 불안·분노를 유발할 수 있기 때문에, 지연시간을 응답 정확도보다 우선적인 평가 요소로 두고 모델을 선정.
+본 프로젝트에서는 **상담형 대화 서비스**에 적합한 LLM을 선정하기 위해, 다음 관점에서 후보 모델들을 비교 평가했습니다.
 
-<table align="center" width="100%">
-  <tr>
-    <td align="center">
-      <img src="images/gpt-mix_dist.png" width="260" />
-    </td>
-    <td align="center">
-      <img src="images/gpt-mix_time.png" width="260" />
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><b>Doc Distance Comparison</b></td>
-    <td align="center"><b>Response Time Comparison</b></td>
-  </tr>
-</table>
+- **답변 품질**: 정보 정확성, 조언의 현실성, 구조화/가독성
+- **대화 역량**: 공감 표현, 맥락 유지, 사용자 자율성 존중
+- **안전성**: 자살·자해·위험행위 등 민감 주제에 대한 안전 게이트 대응의 적절성/일관성
+- **운영 적합성**: 응답 속도, 전반적 균형, 실제 서비스 적용 가능성
 
-- Distance Comparison review
+### 모델 비교 요약표 (정성 평가)
 
-  > 유클리드 거리 기법으로 retriever 점수를 적용. 0에 가까울 수록 더 높은 점수를 얻는 모델을 확인하려 시도함.
-  > GPT5 모델류가 가장 뛰어난 성능을 보이고 있으나, 큰 차이를 보이고 있지 않다고 판단함.
+| 평가 항목 | GPT-5-mini (최종) | GPT-4.1 | GPT-5-nano | GPT-4o |
+|---|---|---|---|---|
+| 총평 | **균형 최상, 서비스 적용 최적** | 전반 성능 우수, 적용 적합 | 간결·맥락 강점, 일부 장황 | 정확·현실 조언 강점, 공감 보완 필요 |
+| 답변 구조/가독성 | 구조화·정리 **매우 우수** | 핵심 정리 **우수** | 핵심 위주, 일부 길어짐 | 구조적 정리 **우수** |
+| 답변 길이/간결성 | 다소 길 수 있음 | 불필요하게 길지 않음 | 비교적 간결(일부 장황) | 보통(읽기 쉬움) |
+| 맥락 유지/흐름 | 일관성 **우수** | 자연스러움 **우수** | 주제 전환에도 연결성 **안정** | 자연스러움은 상대적으로 부족 |
+| 공감 표현 | **가장 안정적** | 전반적으로 안정 | 전반적으로 무난 | 상대적으로 부족(민감 주제에서 단정적일 수 있음) |
+| 자율성 존중 | **가장 안정적** | 안정적 | **높음** | 전반 무난(민감 주제 예외 가능) |
+| 안전 게이트 대응 | 신속·적절 | 적절 | 빠르고 적절 | 전반 무난 |
+| 응답 속도(체감) | 균형 좋음 | 빠르고 자연스러움 | GPT-4o 대비 다소 느릴 수 있음 | 빠른 편 |
+| 운영/특이사항 | 실서비스 관점 균형 강점 | 전반적으로 무난한 운영 적합성 | 일부 답변 장황 경향 | 사적 대화 시 상담 흐름으로 강전환 경향<br>`[EXPERT_REFERAL_NEEDED]` 태그 지속 노출 |
 
-- Time Comparison review
-  > GPT5 모델류의 응답 지연이 심각했기 때문에, GPT4 모델류 쪽에서 모델을 선정하기로 결정함.
+### 최종 선정: GPT-5-mini
 
-<table align="center" width="100%">
-  <tr>
-    <td align="center">
-      <img src="images/GPT-4o.png" width="260" />
-    </td>
-    <td align="center">
-      <img src="images/GPT-4.1.png" width="260" />
-    </td>
-    <td align="center">
-      <img src="images/GPT-5-nano.png" width="260" />
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><b>GPT-4o</b></td>
-    <td align="center"><b>GPT-4.1</b></td>
-    <td align="center"><b>GPT-5-nano</b></td>
-  </tr>
-</table>
+**GPT-5-mini**는 전반적으로 **균형이 가장 뛰어난 모델**로 평가되었습니다.
 
-- 최종적으로 상담을 진행해 본 결과 지연시간이 우수하며, 상담 맥락 이해와 응답 품질 측면에서 안정적인 성능을 수행하는 GPT-4o모델[OpenAI GPT-4o](https://platform.openai.com/docs/models/gpt-4o)을 사용하기로 결정.
+- 답변이 다소 길어질 수 있으나, **구조화와 정리가 우수**해 이해도가 높았습니다.
+- **공감 능력**과 **자율성 존중** 수준이 가장 안정적이었고, **응답의 일관성**도 우수했습니다.
+- 안전 게이트 대응이 **신속하고 적절**하게 이루어졌습니다.
+- **속도·정확성·공감 표현의 균형**이 좋아 **실제 서비스 적용에 가장 적합**한 모델로 판단했습니다.
 
 <br>
 
 ---
-
-<br>
-
-## 📌 향후 확장 방향 (요약)
-
-- 상담 세션 시계열 기반 위험도 변화 추적
-- 감정·정서 변화 추이 시각화
-- 멀티모달 입력(음성 → 텍스트) 확장
-- 전문가 피드백 기반 응답 평가 루프
-- 심리 척도 기반 상태 추정 고도화
-- 전문가 상담 연계(Referral / Escalation) 모듈
-- 상담 기록 기반 맞춤형 행동·케어 플랜 추천
-
-<br>
 
 ## 📄 참고 문서
 
@@ -824,22 +558,8 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 <br>
 
-# 7️⃣ 회고
+# 5️⃣ 회고
 
-## ⚠️ 구현 도중 문제와 해결
-
-### Prompt Test (프롬프트 테스트 및 최적화)
-
-- 목표: 심리상담 데이터 자체가 사람과 사람의 대화이다보니, 챗봇 또한 그러한 말투와 반응을 할 수 있게 하는 것, 동시에 상담이 진행되는 것이 목표였다.
-
-  - 인사말 : 상담 시 사람이 인사를 하고 시작하는 것과 같이 인사를 자연스럽게 하고 상담을 시작하게 하려 했다.
-  - 상담 진행 : 상담 중 사용자가 다른 내용을 말해도 자연스럽게 상담으로 이끌어갈 수 있도록 하려 했다. 이 과정 가운데 할루시네이션 현상을 최대한 막는 것이 목표였다.
-
-- 문제: 단순한 인사말을 설명하려 하고, 상담을 진행할 때 계속되는 할루시네이션 현상이 일어났다. 내부 데이터 외의 내용에서 대화를 진행하려 했다.
-
-- 해결 : 인사말에 규제를 강화하였고, retriver의 일정 score 제한을 두어 할루시네이션 현상을 최소화 시킴으로 내부 데이터에서만 유사어를 찾도록 억제하였다.
-
-- 미해결점 : 일정부분 해결을 하였으나, 데이터가 특정상담에 집중되어 있기에 우리가 흔한 상담으로 생각할 수 있는 일부 내용에 대처하지 못하는 현상이 일어나기도 했다.
 
 <br>
 
@@ -847,9 +567,9 @@ counseling_data (1) ──── (N) counseling_paragraphs ──── ChromaDB
 
 | 🧑‍💼 이름    | 🛠 역할                   | 💬 소감                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **박수빈** | 대장·임베딩 설계·UI      | 데이터처리와 설계쪽에서 시간을 좀 많이 할애하고,다른 영역에서 생각보다 시간이 걸리지 않아, 금방 끝날 줄 알았으나, 모델의 성능개선이 생각보다 쉽지 않았고, 임베딩 작업도, 2번정도 실패하여, 약 6시간을 날리게 되어 시간낭비를 하게 된게 아쉽습니다. 그리고 생각보다 데이터의 처리에 대해서 좀 더 깊게 고민하지 않은거 같아 아쉽습니다.(데이터 노이즈 처리....) 차후 4차 프로젝트가 현 프로젝트를 이어 완성하는 거라면, 데이터 처리와 완성하지 못한 기능을 구현하고 싶습니다. 마지막으로, 다들 열심히 해주셨으나, 제 설계가 미흡해 더 완성도를 올려서 발표하지 못한거 같아 팀원 분들께 심심한 사과의 말씀 드립니다. |
-| **손현우** | 테스트 설계·RAG 성능평가 | 이번 프로젝트에서는 Prompt에 있어 테스팅과 Prompt를 직접 제작하며 챗봇의 흐름을 수정하는 역할을 맡았습니다. 심리 상담에 관련되어있어 상당히 민감한 챗봇인 만큼, 대화 흐름을 더 정교하면서도 공감 할수있게 수정하는 것이 결코 쉬운일이 아니라는 것을 진짜 큰 깨달음을 얻은 시간이였습니다.                                                                                                                                                                                                                                                                                                                         |
-| **우재현** | RAG 로직 설계·PDF 변환   | 아직까지도 LLM 챗봇 기능이 국내 기업들에 온전히 도입되지 못하는 이유를 느낀 것 같았다. 아직은 이를 개선해야할 사람의 역할이 중요함을 느꼈다. 현재 LLM이 대체불가의 위상을 가지고 있지만, 여전히 부족하다는 것을 깨달았다.                                                                                                                                                                                                                                                                                                                                                                                         |
-| **이성진** | Data·Prompt              | 챗봇. 누구나 만든다고. 그것도 아주 쉽게. 딸깍딸깍 몇 번으로. 이거 다 개소리다. 만들기야 쉽겠지. 지피티나 제미나이도 뚝닥. 하지만 '제대로' 만들었는지? 챗봇이 답변 잘하는지? 챗봇 답변 때문에 깊고 깊으며 깊은 빡침을 수도 없이 느꼈다.                                                                                                                                                                                                                                                                                                                                                                            |
-| **장이선** | 전처리·청킹·README       | 전처리랑 청킹을 맡았는데, 2차 프로젝트의 경험 덕에 어렵지 않게 했던 것 같습니다. 아무래도 이번 프로젝트에서 제일 어려웠던 것은 모델의 성능 개선이었던 것 같은데… 제가 할 수 있던 게 없어서 README 작성을 맡게 되었고, 평소 책을 잘 안 읽었더니 가독성이 너무 구린 결과물을 도출해낸 것 같아서 많이 아쉽습니다... 그리고 이것 또한 쉽지 않았고, 프로젝트에서 쉬운 것은 하나도 없다는 교훈을 얻었습니다. (쉽게 갈 생각을 한 건 아닙니다!!!🙅‍♀️🙅‍♀️)                                                                                                                                                                     |
-| **조남웅** | Retriever·Prompt·테스트  | 이번 프로젝트는 역할은 크게 어려움 없이 잘 갔던 거 같습니다. 팀을 이끌어주신 수빈님과 재현님께 감사드립니다. 또한 프롬프트 문장과 모델에 따라 AI가 학습하는 방향이 달라져서 흥미롭고 재미있는 프로젝트가 되었습니다.                                                                                                                                                                                                                                                                                                                                                                                              |
+| **박수빈** | 전처리·임베드·UI·RDS      | 데이터처리와 설계쪽에서 시간을 좀 많이 할애하고,다른 영역에서 생각보다 시간이 걸리지 않아, 금방 끝날 줄 알았으나, 모델의 성능개선이 생각보다 쉽지 않았고, 임베딩 작업도, 2번정도 실패하여, 약 6시간을 날리게 되어 시간낭비를 하게 된게 아쉽습니다. 그리고 생각보다 데이터의 처리에 대해서 좀 더 깊게 고민하지 않은거 같아 아쉽습니다.(데이터 노이즈 처리....) 차후 4차 프로젝트가 현 프로젝트를 이어 완성하는 거라면, 데이터 처리와 완성하지 못한 기능을 구현하고 싶습니다. 마지막으로, 다들 열심히 해주셨으나, 제 설계가 미흡해 더 완성도를 올려서 발표하지 못한거 같아 팀원 분들께 심심한 사과의 말씀 드립니다. |
+| **손현우** | 테스트 설계·평가 데이터셋 구축·README 작성 | 모델별로 쳇봇 기능성을 테스팅 하면서, 질문에 맞게 쳇봇의 흐름을 평가하고 알맞는 쳇봇모델을 구현하는 역할을 맡았습니다. 더더욱이나 알맞는 모델로 쳇봇을 구현하는만큼, 대화의 맥락이 부드러워여야 되는점과 심리상담에 알맞는 질문들을 주고 답변 받는데 있어서 확실히 주제에 알맞는 모델을 선정하는것의 중요성을 느꼈습니다.                                                                                                                                                                                                                                                                                     |
+| **우재현** | RAG 구조개선·백엔드 로직 수정   | 충분히 안전하게 처리했다고 생각했던 내용들을 하나씩 처리하는 과정에서 전체 지식이 늘었났다고 생각한다. 특히 LangGraph 구조 개선 및 라우터를 사용한 쿼리 분류는 팀프로젝트가 아니였다면 경험하지 못했을 것 같다. 앞으로 진행될 프로젝트들에서 유용하게 사용해보도록 할 예정이다.                                                                                                                                                                                                                                                                                                                                 |
+| **이성진** | 데이터 증강·Retriever 조합·RAG 성능 개선   | 지난 프로젝트에서 데이터 전처리를 맡았다. 잘 해내지 못했었다. 이번엔 RAG 성능 개선 파트를 맡았는데, 데이터가 중요하다는 걸 다시 한 번 깨달았다. 결국 데이터 증강 및 RAG 최적화로 방향을 틀었다. '질문 중심 데이터 증강'과 '2단계 검색 파이프라인' 구축을 통해 RAG 시스템의 한계를 극복하는 데 집중했다. gpt-4o-mini 모델을 활용해 내담자 답변만 있던 DB에 '예상 질문 3종'을 생성/결합하여 사용자 질의와의 벡터 유사도를 극대화했다. 인덱싱 단계에서는 multilingual-e5-small 모델의 특성에 맞춰 Prefix(passage/query) 규칙을 엄격히 적용하고, 메타데이터에 직전 상담 맥락($P_{n-1}$)을 포함해 대화의 연속성을 확보했다. 마지막으로 bge-reranker-v2-m3를 통한 리랭킹(Reranking) 과정을 도입, 1차 검색 후보군을 재정렬함으로써 초기 18%였던 검색 정확도를 최종 90% 수준까지 개선했다.결과적으로 모델이 선정되지는 않았지만, 최종 프로젝트로 나아가는 단계에서 보자면 매우 의미 있는 작업이었다.                                                                                                                                                                                                                                                                                |
+| **장이선** | 데이터 전처리·임베딩       | 이번 프로젝트때는 몸 상태가 좋지않아 많은 도움이 되지 못한 것 같아 아쉽습니다! 그래도 많은 배려와 이해를 주신 팀원분들께 감사드립니다.                                                                                                                                                       |
+| **조남웅** | Retriever 배포·EC2, RDS  | 저번 프로젝트보다 성능 개선을 위해 다양한 리트리버 알고리즘을 비교 실험했습니다. 성능좋은 2가지 모델을 합쳐 하이브리드로 한 과정이 있었는데, 더 좋아질 줄 알았지만 오히려 더 과해질 수 있다는 결과를 얻었습니다. 또한 서버를 열어 배포하는 과정에 대해 우리가 현재 쓰고 있는 어플리케이션도 이런 구조일까? 라는 의문점과 함께 굉장히 흥미로운 프로젝트였습니다.                                                                                                                                                            |
