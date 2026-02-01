@@ -124,7 +124,8 @@ def run_production():
         "app.main:app",
         host=app_settings.HOST,
         port=app_settings.PORT,
-        workers=4,
+        workers=1,
+        interface="wsgi",
         log_level="info"
     )
 

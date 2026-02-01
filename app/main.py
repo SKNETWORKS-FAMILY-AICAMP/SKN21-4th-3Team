@@ -48,6 +48,16 @@ from config.db_config import db_settings
 app = Flask(__name__)
 app.secret_key = app_settings.SECRET_KEY
 
+# 세션 정리 (Request Teardown)
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    """
+    요청이 끝날 때마다 DB 세션 정리 (Thread-local cleanup)
+    """
+    global db_manager
+    if db_manager:
+        db_manager.close()
+
 # 세션 설정
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24시간
@@ -467,12 +477,14 @@ def api_session():
     if 'user' in session:
         return jsonify({
             'logged_in': True,
-            'user': session['user']
+            'user': session['user'],
+            'chat_session_id': session.get('chat_session_id')
         })
     else:
         return jsonify({
             'logged_in': False,
-            'user': None
+            'user': None,
+            'chat_session_id': None
         })
 
 
@@ -848,6 +860,11 @@ def api_switch_session():
         
         # Flask 세션에 chat_session_id 업데이트
         session['chat_session_id'] = new_session_id
+        
+        # [Fix] 세션을 명시적으로 전환했으므로, "새 세션 시작" 요청 플래그를 취소
+        if user_info['username'] in _new_session_requests:
+            del _new_session_requests[user_info['username']]
+            print(f"[Debug] Switched to session {new_session_id}, cleared new session request")
         
         return jsonify({
             'success': True,

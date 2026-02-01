@@ -161,6 +161,31 @@ class ExpertReferral(Base):
 
 
 # -------------------------------------------------------------
+# Embedding Store Model (pgvector)
+# -------------------------------------------------------------
+
+class EmbeddingStore(Base):
+    """
+    벡터 저장소 테이블 (pgvector)
+    - RAG에 사용되는 문서 청크와 임베딩 벡터 저장
+    - ChromaDB 대체
+    """
+    __tablename__ = "embedding_store"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    text = Column(Text, nullable=False)                         # 문서 내용
+    metadata_json = Column(JSON, nullable=True)                 # 메타데이터 (source, page 등)
+    # 1536차원: OpenAI text-embedding-3-small 기준
+    from pgvector.sqlalchemy import Vector
+    embedding = Column(Vector(1536), nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<EmbeddingStore(id={self.id})>"
+
+
+# -------------------------------------------------------------
 # Database Initialization
 # -------------------------------------------------------------
 
@@ -217,10 +242,11 @@ def init_database(echo: bool = False) -> Engine:
 
 def get_session(engine: Engine):
     """
-    SQLAlchemy 세션 생성
+    SQLAlchemy 세션 생성 (Scoped Session)
     """
-    Session = sessionmaker(bind=engine)
-    return Session()
+    from sqlalchemy.orm import scoped_session
+    session_factory = sessionmaker(bind=engine)
+    return scoped_session(session_factory)
 
 
 # -------------------------------------------------------------

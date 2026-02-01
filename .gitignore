@@ -90,4 +90,4 @@ fix_db_schema.py
 check_*.py
 debug_*.py
 test_*.py
-pdf_content.txt
+pdf_content.txt*.pem

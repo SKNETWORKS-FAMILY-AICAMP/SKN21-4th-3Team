@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const themeToggle = document.getElementById('theme-toggle');
     const colorToggle = document.getElementById('color-toggle');
 
+    // Global variable to control stream cancellation
+    let streamAbortController = null;
+
     // Sample bot responses for demo
     const botResponses = [
         "감사합니다. 그 상황이 많이 힘드셨겠네요. 조금 더 자세히 이야기해 주시겠어요?",
@@ -155,6 +158,12 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     async function switchToSession(sessionId) {
         try {
+            // Cancel any ongoing stream before switching
+            if (streamAbortController) {
+                streamAbortController.abort();
+                streamAbortController = null;
+            }
+
             // 1. Switch the active session
             const switchResponse = await fetch('/api/switch-session', {
                 method: 'POST',
@@ -464,6 +473,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const botMessageId = 'streaming-msg-' + Date.now();
         createStreamingBotMessage(botMessageId);
 
+        // Create new AbortController for this request
+        if (streamAbortController) {
+            streamAbortController.abort(); // Cancel previous if any
+        }
+        streamAbortController = new AbortController();
+
         try {
             // Call streaming API (Unified for both debug and normal modes)
             const response = await fetch('/api/chat/stream', {
@@ -471,7 +486,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: text, debug: debugMode })
+                body: JSON.stringify({ message: text, debug: debugMode }),
+                signal: streamAbortController.signal
             });
 
             if (!response.ok) {
@@ -568,9 +584,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Stream aborted by user');
+                updateStreamingMessage(botMessageId, '... 대화가 중단되었습니다.');
+                finalizeStreamingMessage(botMessageId);
+                return;
+            }
             console.error('Chat API 오류:', error);
             updateStreamingMessage(botMessageId, '죄송합니다. 서버와 연결할 수 없습니다.');
             finalizeStreamingMessage(botMessageId);
+        } finally {
+            streamAbortController = null;
         }
     }
 
@@ -1224,13 +1248,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Get active chat session ID
-            const activeChat = document.querySelector('.chat-item.active');
-            let sessionId = activeChat ? activeChat.dataset.sessionId : null;
+            // Get active chat session ID from server-side session
+            let sessionId = sessionData.chat_session_id;
 
-            // If no active chat selected, try to get current session
+            // Fallback: try DOM element if server session not available
             if (!sessionId) {
-                // Use the first chat from recent chats or show error
+                const activeChat = document.querySelector('.chat-item.active');
+                sessionId = activeChat ? activeChat.dataset.sessionId : null;
+            }
+
+            // Final fallback: use first chat from list (least preferred)
+            if (!sessionId) {
                 const firstChat = document.querySelector('.chat-item[data-session-id]');
                 if (firstChat) {
                     sessionId = firstChat.dataset.sessionId;
@@ -1283,6 +1311,77 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('PDF 다운로드 에러:', error);
                 showToast('PDF 다운로드 중 오류가 발생했습니다');
             }
+        });
+    }
+    // =========================================================================
+    // Mobile Responsive Features
+    // =========================================================================
+
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileInfoBtn = document.getElementById('mobile-info-btn');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    const navSidebar = document.querySelector('.nav-sidebar');
+    const infoSidebar = document.querySelector('.info-sidebar');
+
+    function updateOverlayState() {
+        if (!mobileOverlay) return;
+        
+        if ((navSidebar && navSidebar.classList.contains('show')) || 
+            (infoSidebar && infoSidebar.classList.contains('show'))) {
+            mobileOverlay.classList.add('active');
+        } else {
+            mobileOverlay.classList.remove('active');
+        }
+    }
+
+    function toggleMobileMenu() {
+        if (!navSidebar) return;
+        navSidebar.classList.toggle('show');
+        if (infoSidebar && navSidebar.classList.contains('show')) {
+            infoSidebar.classList.remove('show');
+        }
+        updateOverlayState();
+    }
+
+    function toggleMobileInfo() {
+        if (!infoSidebar) return;
+        infoSidebar.classList.toggle('show');
+        if (navSidebar && infoSidebar.classList.contains('show')) {
+            navSidebar.classList.remove('show');
+        }
+        updateOverlayState();
+    }
+    
+    function closeAllSidebars() {
+        if (navSidebar) navSidebar.classList.remove('show');
+        if (infoSidebar) infoSidebar.classList.remove('show');
+        updateOverlayState();
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleMobileMenu();
+        });
+    }
+
+    if (mobileInfoBtn) {
+        mobileInfoBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleMobileInfo();
+        });
+    }
+
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', closeAllSidebars);
+    }
+    
+    // Close sidebar when clicking a nav item on mobile
+    if (window.innerWidth <= 768) {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                closeAllSidebars();
+            });
         });
     }
 });

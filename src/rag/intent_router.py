@@ -39,10 +39,10 @@ class QueryIntent(Enum):
 
 
 # 직접 응답이 가능한 의도들 (RAG 불필요)
-DIRECT_RESPONSE_INTENTS = {QueryIntent.GREETING, QueryIntent.CHITCHAT, QueryIntent.CLOSING}
+DIRECT_RESPONSE_INTENTS = {QueryIntent.GREETING, QueryIntent.CLOSING}
 
-# RAG 검색이 필요한 의도들
-RAG_REQUIRED_INTENTS = {QueryIntent.EMOTION, QueryIntent.QUESTION}
+# RAG 검색이 필요한 의도들 (CHITCHAT도 포함 - LLM이 맥락에 맞게 상담으로 유도)
+RAG_REQUIRED_INTENTS = {QueryIntent.EMOTION, QueryIntent.QUESTION, QueryIntent.CHITCHAT}
 
 # 즉시 위기 대응이 필요한 의도
 CRISIS_INTENTS = {QueryIntent.CRISIS}

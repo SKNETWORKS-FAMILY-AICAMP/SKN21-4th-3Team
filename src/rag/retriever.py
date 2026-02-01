@@ -53,7 +53,7 @@ def load_vector_db(persist_directory: Optional[str] = None) -> VectorStore:
     - 기존 컬렉션 중 문서가 있는 컬렉션을 사용
     """
 
-    vector_db = VectorStore(persist_directory=persist_directory)
+    vector_db = VectorStore()
 
     client = vector_db.client
 
@@ -146,24 +146,11 @@ def create_retriever(
         # -----------------------------
         # Vector 검색
         # -----------------------------
-        results = vector_db.search(
+        return vector_db.similarity_search(
             query=query,
-            n_results=top_k,
-            where=where if where else None
+            k=top_k,
+            filter=where if where else None
         )
-
-        # -----------------------------
-        # 결과 정리
-        # -----------------------------
-        formatted_results = []
-        for i, doc in enumerate(results["documents"]):
-            formatted_results.append({
-                "content": doc,
-                "metadata": results["metadatas"][i] if results["metadatas"] else {},
-                "distance": results["distances"][i] if results["distances"] else None,
-            })
-
-        return formatted_results
 
     print("[INFO] Retriever created")
     print(f"       top_k = {top_k}")

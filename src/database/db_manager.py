@@ -46,7 +46,7 @@ class DatabaseManager:
         self.engine = init_database(echo=echo)
         self._session: Optional[Session] = None
         
-        # ChromaDB 초기화
+        # VectorStore 초기화 (ChromaDB)
         self.vector_store = VectorStore()
     
     # -------------------------------------------------------------
@@ -64,17 +64,21 @@ class DatabaseManager:
     
     def close(self) -> None:
         """
-        세션 종료
+        세션 종료 (Scoped Session 반환)
         """
         if self._session:
-            self._session.close()
-            self._session = None
+            self._session.remove()  # Thread-local session cleanup
+            # self._session = None  # Do not set to None, keep registry alive
     
     def commit(self) -> None:
         """
-        변경사항 커밋
+        변경사항 커밋 (실패 시 자동 롤백)
         """
-        self.session.commit()
+        try:
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
     
     def rollback(self) -> None:
         """
